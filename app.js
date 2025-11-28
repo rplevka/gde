@@ -102,13 +102,55 @@ let gameState = {
     customRegion: null,
     drawnPath: [],
     panoramaCache: [], // Cache found panorama locations to reduce API calls
-    roundSubmitted: false // Track if current round has been submitted
+    roundSubmitted: false, // Track if current round has been submitted
+    preferences: {
+        mapLayers: true,
+        showRegion: true,
+        turnAround: true,
+        zoom: true
+    }
 };
 
 // Initialize the game when page loads
 document.addEventListener('DOMContentLoaded', () => {
     setupStartScreen();
+    setupDifficultyPreferences();
 });
+
+function setupDifficultyPreferences() {
+    // Open difficulty modal
+    document.getElementById('difficultyPrefsBtn').addEventListener('click', () => {
+        document.getElementById('difficultyModal').style.display = 'flex';
+    });
+    
+    // Close difficulty modal
+    document.getElementById('closeDifficultyModal').addEventListener('click', () => {
+        document.getElementById('difficultyModal').style.display = 'none';
+    });
+    
+    // Handle preference changes
+    document.getElementById('pref-mapLayers').addEventListener('change', (e) => {
+        gameState.preferences.mapLayers = e.target.checked;
+        // Hide/show map layer selector if game is running
+        const selector = document.getElementById('mapLayerSelect');
+        if (selector && gameState.gameStarted) {
+            selector.style.display = e.target.checked ? 'block' : 'none';
+        }
+    });
+    
+    document.getElementById('pref-showRegion').addEventListener('change', (e) => {
+        gameState.preferences.showRegion = e.target.checked;
+        // Will be applied when map is initialized
+    });
+    
+    document.getElementById('pref-turnAround').addEventListener('change', (e) => {
+        gameState.preferences.turnAround = e.target.checked;
+    });
+    
+    document.getElementById('pref-zoom').addEventListener('change', (e) => {
+        gameState.preferences.zoom = e.target.checked;
+    });
+}
 
 function setupStartScreen() {
     let selectedRegion = null;
@@ -186,10 +228,16 @@ function startGame() {
 
 function setupEventListeners() {
     // Map layer selection
-    document.getElementById('mapLayerSelect').addEventListener('change', (e) => {
+    const mapLayerSelect = document.getElementById('mapLayerSelect');
+    mapLayerSelect.addEventListener('change', (e) => {
         gameState.currentMapLayer = e.target.value;
         updateMapLayer();
     });
+    
+    // Apply map layer preference
+    if (!gameState.preferences.mapLayers) {
+        mapLayerSelect.style.display = 'none';
+    }
 
     // Submit guess button
     document.getElementById('submitGuess').addEventListener('click', submitGuess);
@@ -260,6 +308,12 @@ function initializeMap() {
         ? gameState.customRegion 
         : REGIONS[gameState.selectedRegion];
     
+    // Safety check
+    if (!region || !region.bounds) {
+        console.error('Region not found:', gameState.selectedRegion);
+        return;
+    }
+    
     // Calculate center of the region
     const centerLat = (region.bounds.minLat + region.bounds.maxLat) / 2;
     const centerLon = (region.bounds.minLon + region.bounds.maxLon) / 2;
@@ -279,8 +333,8 @@ function initializeMap() {
         gameState.map.fitBounds(bounds, { padding: [20, 20] });
     }, 100);
 
-    // Add custom region overlay if using custom region
-    if (gameState.selectedRegion === 'custom' && gameState.customRegion && gameState.customRegion.paths) {
+    // Add custom region overlay if using custom region and preference is enabled
+    if (gameState.preferences.showRegion && gameState.selectedRegion === 'custom' && gameState.customRegion && gameState.customRegion.paths) {
         gameState.customRegion.paths.forEach(path => {
             L.polygon(path, {
                 color: '#667eea',
@@ -467,6 +521,42 @@ async function loadPanorama(lat, lon) {
         }
 
         gameState.panoramaInstance = panoData;
+        
+        // Apply difficulty preferences to panorama
+        const initialCamera = panoData.getCamera();
+        
+        // Store initial camera for restrictions
+        if (!gameState.preferences.turnAround || !gameState.preferences.zoom) {
+            const restrictedCamera = {
+                yaw: initialCamera.yaw,
+                pitch: initialCamera.pitch,
+                fov: initialCamera.fov
+            };
+            
+            // Add listener to enforce restrictions
+            panoData.addListener('pano-view', () => {
+                const currentCamera = panoData.getCamera();
+                const newCamera = { ...currentCamera };
+                
+                // Lock rotation if preference is off
+                if (!gameState.preferences.turnAround) {
+                    newCamera.yaw = restrictedCamera.yaw;
+                    newCamera.pitch = restrictedCamera.pitch;
+                }
+                
+                // Lock zoom if preference is off
+                if (!gameState.preferences.zoom) {
+                    newCamera.fov = restrictedCamera.fov;
+                }
+                
+                // Apply restrictions if camera changed
+                if (newCamera.yaw !== currentCamera.yaw || 
+                    newCamera.pitch !== currentCamera.pitch || 
+                    newCamera.fov !== currentCamera.fov) {
+                    panoData.setCamera(newCamera);
+                }
+            });
+        }
 
         // Update actual location if panorama position differs
         if (panoData.info) {

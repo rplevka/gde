@@ -15,14 +15,13 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <link rel="stylesheet" href="styles.css">
-    <script src="config.js"></script>
 </head>
 <body>
     <div id="app">
         <!-- Start Screen -->
         <div id="startScreen">
             <div class="start-container">
-                <h1>🌍 GDE</h1>
+                <h1>GDE SU?!</h1>
                 <p class="subtitle">Geo Guessing Game</p>
                 
                 <div class="start-section">
@@ -71,7 +70,10 @@
                     </div>
                 </div>
                 
-                <button id="startGameBtn" class="btn btn-success btn-large" disabled>Start Game</button>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                    <button id="difficultyPrefsBtn" class="btn btn-secondary">⚙️ Difficulty Preferences</button>
+                    <button id="startGameBtn" class="btn btn-success" disabled>Start Game</button>
+                </div>
             </div>
         </div>
 
@@ -144,6 +146,64 @@
         <button id="restoreResult" class="restore-btn" style="display: none;">
             📊 Show Results
         </button>
+
+        <!-- Difficulty Preferences Modal -->
+        <div id="difficultyModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>⚙️ Difficulty Preferences</h2>
+                <p class="modal-subtitle">Customize your game difficulty</p>
+                
+                <div class="preferences-list">
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <div class="preference-title">Switch Map Layers</div>
+                            <div class="preference-desc">Allow changing map style in minimap</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="pref-mapLayers" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <div class="preference-title">Show Play Region</div>
+                            <div class="preference-desc">Display region boundaries on minimap</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="pref-showRegion" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <div class="preference-title">Turn Around in Panorama</div>
+                            <div class="preference-desc">Allow rotating view 360°</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="pref-turnAround" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <div class="preference-title">Zoom in Panorama</div>
+                            <div class="preference-desc">Allow zooming in/out of the view</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="pref-zoom" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
+                    <button id="closeDifficultyModal" class="btn btn-primary">Done</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Draw Region Modal -->
         <div id="drawRegionModal" class="modal" style="display: none;">
