@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GDE - Geo Guessing Game</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Panorama JS -->
+    <script type="text/javascript" src="https://api.mapy.cz/js/panorama/v1/panorama.js"></script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Start Screen -->
+        <div id="startScreen">
+            <div class="start-container">
+                <h1>🌍 GDE</h1>
+                <p class="subtitle">Geo Guessing Game</p>
+                
+                <div class="start-section">
+                    <h2>Select Region</h2>
+                    <div class="region-grid">
+                        <button class="region-btn" data-region="czechia">
+                            <span class="region-icon">🇨🇿</span>
+                            <span class="region-name">Czech Republic</span>
+                        </button>
+                        <button class="region-btn" data-region="prague">
+                            <span class="region-icon">🏛️</span>
+                            <span class="region-name">Prague</span>
+                        </button>
+                        <button class="region-btn" data-region="brno">
+                            <span class="region-icon">🏙️</span>
+                            <span class="region-name">Brno</span>
+                        </button>
+                        <button class="region-btn" data-region="moravia">
+                            <span class="region-icon">⛰️</span>
+                            <span class="region-name">Moravia</span>
+                        </button>
+                        <button class="region-btn" data-region="bohemia">
+                            <span class="region-icon">🏰</span>
+                            <span class="region-name">Bohemia</span>
+                        </button>
+                        <button class="region-btn" id="drawRegionBtn">
+                            <span class="region-icon">✏️</span>
+                            <span class="region-name">Draw Region</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="start-section">
+                    <h2>Select Game Mode</h2>
+                    <div class="mode-grid">
+                        <button class="mode-btn" data-mode="explorer">
+                            <span class="mode-icon">🚶</span>
+                            <span class="mode-name">Explorer Mode</span>
+                            <span class="mode-desc">Move around and explore the panorama</span>
+                        </button>
+                        <button class="mode-btn" data-mode="static">
+                            <span class="mode-icon">📸</span>
+                            <span class="mode-name">Static Mode</span>
+                            <span class="mode-desc">Fixed view, no movement allowed</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <button id="startGameBtn" class="btn btn-success btn-large" disabled>Start Game</button>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header style="display: none;">
+            <h1>🌍 GDE - Geo Guessing Game</h1>
+            <div class="score-container">
+                <div class="score-item">
+                    <span class="label">Round:</span>
+                    <span id="currentRound">1</span>/<span id="totalRounds">5</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">Total Score:</span>
+                    <span id="totalScore">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Game Container -->
+        <div id="gameContainer" style="display: none;">
+            <!-- Fullscreen Panorama View -->
+            <div id="panoramaSection">
+                <div id="panoramaContainer"></div>
+                
+            </div>
+
+            <!-- Floating Map Overlay -->
+            <div id="mapOverlay" class="collapsed">
+                <div id="mapHeader">
+                    <div class="map-title">
+                        <span>🗺️ Make your guess</span>
+                    </div>
+                    <div class="map-controls">
+                        <select id="mapLayerSelect" title="Map Layer">
+                            <option value="basic">Basic</option>
+                            <option value="outdoor">Outdoor</option>
+                            <option value="winter">Winter</option>
+                            <option value="aerial">Aerial</option>
+                        </select>
+                        <button id="toggleMapSize" class="icon-btn" title="Expand/Collapse">
+                            <span id="toggleIcon">⛶</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="mapContainer"></div>
+                <div class="map-footer">
+                    <div class="map-instructions">Click on the map to place your guess</div>
+                    <button id="submitGuess" class="btn btn-primary btn-compact" disabled>Submit Guess</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Modal -->
+        <div id="resultModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2 id="resultTitle">Round Result</h2>
+                <div id="resultDetails">
+                    <p><strong>Distance:</strong> <span id="resultDistance"></span></p>
+                    <p><strong>Score:</strong> <span id="resultScore"></span></p>
+                </div>
+                <div id="resultMap"></div>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                    <button id="minimizeResult" class="btn btn-secondary">Minimize</button>
+                    <button id="nextRound" class="btn btn-primary" style="display: none;">Next Round</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Restore Result Button (shown when minimized) -->
+        <button id="restoreResult" class="restore-btn" style="display: none;">
+            📊 Show Results
+        </button>
+
+        <!-- Draw Region Modal -->
+        <div id="drawRegionModal" class="modal" style="display: none;">
+            <div class="modal-content modal-large">
+                <h2>✏️ Draw Your Custom Region</h2>
+                <p class="modal-subtitle">Click and drag to draw the area where you want to play</p>
+                <div class="draw-mode-toggle">
+                    <button id="drawModeBtn" class="mode-toggle-btn active">
+                        <span>✏️</span> Draw
+                    </button>
+                    <button id="panModeBtn" class="mode-toggle-btn">
+                        <span>🤚</span> Move Map
+                    </button>
+                </div>
+                <div id="drawMapContainer"></div>
+                <div class="draw-controls">
+                    <button id="clearDrawing" class="btn btn-secondary">Clear Drawing</button>
+                    <button id="confirmDrawing" class="btn btn-primary" disabled>Confirm Region</button>
+                    <button id="cancelDrawing" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Final Score Modal -->
+        <div id="finalScoreModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>🎉 Game Complete!</h2>
+                <div id="finalScoreDetails">
+                    <p class="final-score">Final Score: <span id="finalScore"></span></p>
+                    <div id="roundBreakdown"></div>
+                </div>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                    <button id="playAgain" class="btn btn-success">Play Again</button>
+                    <button id="returnToMenu" class="btn btn-secondary">Return to Menu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

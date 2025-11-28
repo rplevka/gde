@@ -1,0 +1,695 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+#app {
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Start Screen */
+#startScreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.start-container {
+    background: white;
+    border-radius: 20px;
+    padding: 50px;
+    max-width: 800px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.start-container h1 {
+    font-size: 4rem;
+    margin: 0;
+    color: #667eea;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.subtitle {
+    font-size: 1.5rem;
+    color: #666;
+    margin: 10px 0 40px;
+    font-weight: 300;
+}
+
+.start-section {
+    margin: 40px 0;
+}
+
+.start-section h2 {
+    color: #333;
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+}
+
+.region-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.region-btn {
+    background: white;
+    border: 3px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.region-btn:hover {
+    border-color: #667eea;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.region-btn.selected {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.region-icon {
+    font-size: 2.5rem;
+}
+
+.region-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.mode-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.mode-btn {
+    background: white;
+    border: 3px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 30px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+}
+
+.mode-btn:hover {
+    border-color: #667eea;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.mode-btn.selected {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.mode-icon {
+    font-size: 3rem;
+}
+
+.mode-name {
+    font-weight: 700;
+    color: #333;
+    font-size: 1.2rem;
+}
+
+.mode-desc {
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.4;
+}
+
+.btn-large {
+    padding: 18px 50px;
+    font-size: 1.3rem;
+    margin-top: 30px;
+}
+
+/* Header */
+header {
+    background: white;
+    padding: 20px 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+header h1 {
+    color: #333;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.score-container {
+    display: flex;
+    gap: 30px;
+}
+
+.score-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.1rem;
+}
+
+.score-item .label {
+    color: #666;
+    font-weight: 500;
+}
+
+.score-item span:not(.label) {
+    color: #667eea;
+    font-weight: 700;
+    font-size: 1.3rem;
+}
+
+/* Game Container */
+#gameContainer {
+    position: relative;
+    height: calc(100vh - 140px);
+    margin-bottom: 20px;
+}
+
+/* Fullscreen Panorama Section */
+#panoramaSection {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #f0f0f0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#panoramaContainer {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+
+/* Top Controls Bar */
+#topControls {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-group label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.control-group select {
+    padding: 6px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    background: white;
+    color: #333;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.control-group select:hover {
+    border-color: #667eea;
+}
+
+/* Floating Map Overlay */
+#mapOverlay {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    z-index: 200;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+#mapOverlay.collapsed {
+    width: 350px;
+    height: 250px;
+}
+
+#mapOverlay.expanded {
+    width: 50vw;
+    height: 50vh;
+    max-width: 800px;
+    max-height: 600px;
+}
+
+#mapHeader {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: move;
+    flex-shrink: 0;
+}
+
+.map-title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.map-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#mapLayerSelect {
+    padding: 4px 8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+#mapContainer {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    position: relative;
+}
+
+.map-footer {
+    padding: 6px 10px;
+    background: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.map-instructions {
+    color: #666;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.btn-compact {
+    padding: 6px 16px;
+    font-size: 0.85rem;
+    width: auto;
+    min-width: 120px;
+}
+
+
+.btn {
+    padding: 14px 32px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-success {
+background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+color: white;
+}
+
+/* Restore Result Button */
+.restore-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    z-index: 500;
+    transition: all 0.3s ease;
+}
+
+.restore-btn:hover {
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
+}
+
+/* Modals */
+.modal {
+display: none;
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0, 0, 0, 0.7);
+z-index: 1000;
+justify-content: center;
+align-items: center;
+}
+
+.modal-content {
+background: white;
+padding: 40px;
+border-radius: 16px;
+max-width: 800px;
+width: 90%;
+max-height: 90vh;
+overflow-y: auto;
+box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-large {
+max-width: 1000px;
+max-height: 85vh;
+}
+
+.modal-subtitle {
+color: #666;
+font-size: 1rem;
+margin: -10px 0 20px;
+text-align: center;
+}
+
+#drawMapContainer {
+width: 100%;
+height: 500px;
+border: 2px solid #e0e0e0;
+border-radius: 8px;
+margin-bottom: 20px;
+position: relative;
+cursor: crosshair;
+}
+
+.draw-mode-toggle {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.mode-toggle-btn {
+    padding: 10px 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+    color: #333;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mode-toggle-btn:hover {
+    border-color: #667eea;
+    background: #f8f9fa;
+}
+
+.mode-toggle-btn.active {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    color: #667eea;
+}
+
+.mode-toggle-btn span {
+    font-size: 1.2rem;
+}
+
+.draw-controls {
+display: flex;
+gap: 15px;
+justify-content: center;
+flex-wrap: wrap;
+}
+
+.modal-content h2 {
+color: #333;
+margin-bottom: 20px;
+font-size: 1.8rem;
+}
+
+#resultDetails {
+    margin-bottom: 20px;
+}
+
+#resultDetails p {
+    margin: 10px 0;
+    font-size: 1.1rem;
+    color: #555;
+}
+
+#resultDetails strong {
+    color: #333;
+}
+
+#resultMap {
+    height: 300px;
+    margin: 20px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #e0e0e0;
+}
+
+#finalScoreDetails {
+    text-align: center;
+}
+
+.final-score {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #667eea;
+    margin: 20px 0;
+}
+
+#roundBreakdown {
+    margin: 20px 0;
+    text-align: left;
+}
+
+.round-result {
+    padding: 12px;
+    margin: 8px 0;
+    background: #f8f9fa;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.round-result strong {
+    color: #333;
+}
+
+.round-result .score {
+    color: #667eea;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+/* Status Messages */
+.status-message {
+    padding: 15px 20px;
+    text-align: center;
+    color: #666;
+}
+
+.status-message.loading {
+    color: #667eea;
+    font-weight: 500;
+}
+
+.status-message.error {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+/* Custom Markers */
+.custom-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.custom-marker::before {
+    content: none !important;
+}
+
+/* Guess marker on main map */
+.guess-marker {
+    background: #ff4444;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.actual-marker {
+    background-color: #44ff44;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Loading Animation */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.loading {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .score-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    #gameContainer {
+        height: calc(100vh - 180px);
+    }
+    
+    #mapOverlay.collapsed {
+        width: 280px;
+        height: 200px;
+    }
+    
+    #mapOverlay.expanded {
+        width: calc(100vw - 40px);
+        height: 60vh;
+        bottom: 10px;
+        right: 10px;
+    }
+    
+    #topControls {
+        top: 10px;
+        left: 10px;
+        padding: 8px 12px;
+    }
+    
+    #actionButtons {
+        bottom: 10px;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        font-size: 0.95rem;
+    }
+}
