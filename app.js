@@ -1,6 +1,33 @@
+// API Key Management
+let API_KEYS = [];
+let currentKeyIndex = 0;
+
+if (typeof APP_CONFIG !== 'undefined') {
+    // Support multiple API keys
+    if (APP_CONFIG.MAPY_API_KEYS && Array.isArray(APP_CONFIG.MAPY_API_KEYS) && APP_CONFIG.MAPY_API_KEYS.length > 0) {
+        API_KEYS = APP_CONFIG.MAPY_API_KEYS;
+    } else if (APP_CONFIG.MAPY_API_KEY) {
+        API_KEYS = [APP_CONFIG.MAPY_API_KEY];
+    }
+} else {
+    API_KEYS = ['YOUR_API_KEY'];
+}
+
+// Function to get current API key and rotate to next
+function getApiKey() {
+    const key = API_KEYS[currentKeyIndex];
+    currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+    return key;
+}
+
+// Function to get API key without rotation (for display/check)
+function getCurrentApiKey() {
+    return API_KEYS[currentKeyIndex];
+}
+
 // Game Configuration
 const CONFIG = {
-    API_KEY: typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.MAPY_API_KEY : 'YOUR_API_KEY', // Loaded from config.js
+    API_KEY: getCurrentApiKey(), // Initial key for validation
     TOTAL_ROUNDS: 5,
     MAX_SCORE_PER_ROUND: 5000,
     PANORAMA_SEARCH_RADIUS: 100, // meters
@@ -252,6 +279,20 @@ function initializeMap() {
         gameState.map.fitBounds(bounds, { padding: [20, 20] });
     }, 100);
 
+    // Add custom region overlay if using custom region
+    if (gameState.selectedRegion === 'custom' && gameState.customRegion && gameState.customRegion.paths) {
+        gameState.customRegion.paths.forEach(path => {
+            L.polygon(path, {
+                color: '#667eea',
+                fillColor: '#667eea',
+                fillOpacity: 0.15,
+                weight: 2,
+                opacity: 0.4,
+                interactive: false // Don't interfere with map clicks
+            }).addTo(gameState.map);
+        });
+    }
+
     // Add logo control
     const LogoControl = L.Control.extend({
         options: { position: 'bottomleft' },
@@ -283,7 +324,7 @@ function updateMapLayer() {
 
     // Add new tile layer
     const mapset = gameState.currentMapLayer;
-    L.tileLayer(`https://api.mapy.com/v1/maptiles/${mapset}/256/{z}/{x}/{y}?apikey=${CONFIG.API_KEY}`, {
+    L.tileLayer(`https://api.mapy.com/v1/maptiles/${mapset}/256/{z}/{x}/{y}?apikey=${getApiKey()}`, {
         minZoom: 0,
         maxZoom: 20,
         attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
@@ -382,7 +423,7 @@ async function findRandomLocationWithPanorama() {
             const result = await Panorama.panoramaExists({
                 lon: lon,
                 lat: lat,
-                apiKey: CONFIG.API_KEY,
+                apiKey: getApiKey(),
                 radius: CONFIG.PANORAMA_SEARCH_RADIUS
             });
 
@@ -414,7 +455,7 @@ async function loadPanorama(lat, lon) {
             parent: container,
             lon: lon,
             lat: lat,
-            apiKey: CONFIG.API_KEY,
+            apiKey: getApiKey(),
             radius: CONFIG.PANORAMA_SEARCH_RADIUS,
             showNavigation: showNavigation,
             lang: 'en'
@@ -568,7 +609,7 @@ function showRoundResult(result) {
         (result.actualLocation.lon + result.guessLocation.lon) / 2
     ], 10);
 
-    L.tileLayer(`https://api.mapy.com/v1/maptiles/basic/256/{z}/{x}/{y}?apikey=${CONFIG.API_KEY}`, {
+    L.tileLayer(`https://api.mapy.com/v1/maptiles/basic/256/{z}/{x}/{y}?apikey=${getApiKey()}`, {
         attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s.</a>',
     }).addTo(gameState.resultMap);
 
@@ -755,7 +796,7 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
         touchZoom: false
     }).setView([49.8, 15.5], 7);
     
-    L.tileLayer(`https://api.mapy.com/v1/maptiles/basic/256/{z}/{x}/{y}?apikey=${CONFIG.API_KEY}`, {
+    L.tileLayer(`https://api.mapy.com/v1/maptiles/basic/256/{z}/{x}/{y}?apikey=${getApiKey()}`, {
         attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s.</a>',
     }).addTo(gameState.drawMap);
     

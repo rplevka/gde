@@ -26,9 +26,28 @@ Get a free API key from [Mapy.cz Developer Portal](https://developer.mapy.com):
 # Copy the example config file
 cp config.example.js config.js
 
-# Edit config.js and add your API key
-# Replace 'YOUR_API_KEY_HERE' with your actual key
+# Edit config.js and add your API key(s)
 ```
+
+**Single API Key:**
+```javascript
+const APP_CONFIG = {
+    MAPY_API_KEY: 'your-api-key-here'
+};
+```
+
+**Multiple API Keys (recommended for high usage):**
+```javascript
+const APP_CONFIG = {
+    MAPY_API_KEYS: [
+        'your-api-key-1',
+        'your-api-key-2',
+        'your-api-key-3'
+    ]
+};
+```
+
+The game will automatically rotate through multiple keys to distribute API usage and avoid rate limits.
 
 ### 3. Run the Game
 
