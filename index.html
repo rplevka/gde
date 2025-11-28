@@ -32,19 +32,19 @@
                             <span class="region-name">Czech Republic</span>
                         </button>
                         <button class="region-btn" data-region="prague">
-                            <span class="region-icon">🏛️</span>
+                            <span class="region-icon">⭐</span>
                             <span class="region-name">Prague</span>
                         </button>
                         <button class="region-btn" data-region="brno">
-                            <span class="region-icon">🏙️</span>
+                            <span class="region-icon">🚇</span>
                             <span class="region-name">Brno</span>
                         </button>
                         <button class="region-btn" data-region="moravia">
-                            <span class="region-icon">⛰️</span>
+                            <span class="region-icon">🍷</span>
                             <span class="region-name">Moravia</span>
                         </button>
                         <button class="region-btn" data-region="bohemia">
-                            <span class="region-icon">🏰</span>
+                            <span class="region-icon">🍺</span>
                             <span class="region-name">Bohemia</span>
                         </button>
                         <button class="region-btn" id="drawRegionBtn">
@@ -71,7 +71,7 @@
                 </div>
                 
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-                    <button id="difficultyPrefsBtn" class="btn btn-secondary">⚙️ Difficulty Preferences</button>
+                    <button id="difficultyPrefsBtn" class="btn btn-secondary">⚙️ Game Settings</button>
                     <button id="startGameBtn" class="btn btn-success" disabled>Start Game</button>
                 </div>
             </div>
@@ -97,7 +97,9 @@
             <!-- Fullscreen Panorama View -->
             <div id="panoramaSection">
                 <div id="panoramaContainer"></div>
-                
+                <button id="resetLocationBtn" class="reset-location-btn" style="display: none;" title="Reset to Original Location">
+                    🔄 Reset Location
+                </button>
             </div>
 
             <!-- Floating Map Overlay -->
@@ -120,7 +122,6 @@
                 </div>
                 <div id="mapContainer"></div>
                 <div class="map-footer">
-                    <div class="map-instructions">Click on the map to place your guess</div>
                     <button id="submitGuess" class="btn btn-primary btn-compact" disabled>Submit Guess</button>
                 </div>
             </div>
@@ -147,11 +148,11 @@
             📊 Show Results
         </button>
 
-        <!-- Difficulty Preferences Modal -->
+        <!-- Game Settings Modal -->
         <div id="difficultyModal" class="modal" style="display: none;">
             <div class="modal-content">
-                <h2>⚙️ Difficulty Preferences</h2>
-                <p class="modal-subtitle">Customize your game difficulty</p>
+                <h2>⚙️ Game Settings</h2>
+                <p class="modal-subtitle">Customize your game settings</p>
                 
                 <div class="preferences-list">
                     <div class="preference-item">
@@ -189,11 +190,22 @@
                     
                     <div class="preference-item">
                         <div class="preference-info">
-                            <div class="preference-title">Zoom in Panorama</div>
-                            <div class="preference-desc">Allow zooming in/out of the view</div>
+                            <strong>Allow Zoom</strong>
+                            <p>Enable zooming in the panorama view</p>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="pref-zoom" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <strong>Score from Original Location (Explorer Mode)</strong>
+                            <p>ON: starting point. OFF: current position</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="pref-targetOriginal" checked>
                             <span class="slider"></span>
                         </label>
                     </div>

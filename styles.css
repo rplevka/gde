@@ -11,9 +11,19 @@ body {
     padding: 20px;
 }
 
+body.game-active {
+    padding: 0;
+    overflow: hidden;
+}
+
 #app {
     max-width: 1600px;
     margin: 0 auto;
+}
+
+#app.game-active {
+    max-width: none;
+    margin: 0;
 }
 
 /* Start Screen */
@@ -27,7 +37,6 @@ body {
 
 .start-container {
     background: white;
-    border-radius: 20px;
     padding: 50px;
     max-width: 800px;
     width: 100%;
@@ -69,8 +78,7 @@ body {
 .region-btn {
     background: white;
     border: 3px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 20px 15px;
+    padding: 15px 12px;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
@@ -110,8 +118,7 @@ body {
 .mode-btn {
     background: white;
     border: 3px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 30px 20px;
+    padding: 20px 15px;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
@@ -158,80 +165,85 @@ body {
 /* Header */
 header {
     background: white;
-    padding: 20px 30px;
-    border-radius: 12px;
+    padding: 10px 20px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 15px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 150;
+    width: 100%;
 }
 
 header h1 {
     color: #333;
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 1.1rem;
+    font-weight: 600;
 }
 
 .score-container {
     display: flex;
-    gap: 30px;
+    gap: 20px;
+    align-items: center;
 }
 
 .score-item {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 1.1rem;
+    gap: 6px;
+    align-items: baseline;
 }
 
 .score-item .label {
     color: #666;
-    font-weight: 500;
+    font-size: 0.85rem;
 }
 
 .score-item span:not(.label) {
     color: #667eea;
     font-weight: 700;
-    font-size: 1.3rem;
+    font-size: 1rem;
 }
 
 /* Game Container */
 #gameContainer {
     position: relative;
-    height: calc(100vh - 140px);
-    margin-bottom: 20px;
+    height: 100vh;
+    width: 100vw;
 }
 
 /* Fullscreen Panorama Section */
 #panoramaSection {
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     background: #f0f0f0;
-    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 #panoramaContainer {
     width: 100%;
     height: 100%;
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 
 /* Top Controls Bar */
 #topControls {
-    position: absolute;
-    top: 20px;
-    left: 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
     z-index: 100;
     background: rgba(255, 255, 255, 0.95);
     padding: 12px 20px;
-    border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -248,12 +260,11 @@ header h1 {
 }
 
 .control-group select {
-    padding: 6px 12px;
+    padding: 5px 10px;
     border: 2px solid #e0e0e0;
-    border-radius: 6px;
     background: white;
     color: #333;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.3s ease;
 }
@@ -264,17 +275,17 @@ header h1 {
 
 /* Floating Map Overlay */
 #mapOverlay {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
     background: white;
-    border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     z-index: 200;
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
+    max-height: calc(100vh - 20px);
 }
 
 #mapOverlay.collapsed {
@@ -286,7 +297,7 @@ header h1 {
     width: 50vw;
     height: 50vh;
     max-width: 800px;
-    max-height: 600px;
+    max-height: calc(100vh - 20px);
 }
 
 #mapHeader {
@@ -312,12 +323,11 @@ header h1 {
 }
 
 #mapLayerSelect {
-    padding: 4px 8px;
+    padding: 3px 6px;
     border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
     background: rgba(255, 255, 255, 0.9);
     color: #333;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     cursor: pointer;
 }
 
@@ -325,9 +335,8 @@ header h1 {
     background: rgba(255, 255, 255, 0.2);
     border: 2px solid rgba(255, 255, 255, 0.3);
     color: white;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 28px;
+    height: 28px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -359,12 +368,6 @@ header h1 {
     flex-shrink: 0;
 }
 
-.map-instructions {
-    color: #666;
-    font-size: 0.85rem;
-    text-align: center;
-}
-
 .btn-compact {
     padding: 6px 16px;
     font-size: 0.85rem;
@@ -374,10 +377,9 @@ header h1 {
 
 
 .btn {
-    padding: 14px 32px;
+    padding: 10px 24px;
     border: none;
-    border-radius: 8px;
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -419,8 +421,7 @@ color: white;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    border-radius: 25px;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
@@ -431,6 +432,30 @@ color: white;
 .restore-btn:hover {
     transform: translateX(-50%) translateY(-2px);
     box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
+}
+
+/* Reset Location Button */
+.reset-location-btn {
+    position: fixed;
+    top: 60px;
+    right: 10px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #333;
+    border: 2px solid #667eea;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 90;
+    transition: all 0.3s ease;
+}
+
+.reset-location-btn:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 /* Modals */
@@ -449,8 +474,7 @@ align-items: center;
 
 .modal-content {
 background: white;
-padding: 40px;
-border-radius: 16px;
+padding: 30px;
 max-width: 800px;
 width: 90%;
 max-height: 90vh;
@@ -474,7 +498,6 @@ text-align: center;
 width: 100%;
 height: 500px;
 border: 2px solid #e0e0e0;
-border-radius: 8px;
 margin-bottom: 20px;
 position: relative;
 cursor: crosshair;
@@ -488,12 +511,11 @@ cursor: crosshair;
 }
 
 .mode-toggle-btn {
-    padding: 10px 20px;
+    padding: 8px 16px;
     border: 2px solid #e0e0e0;
-    border-radius: 8px;
     background: white;
     color: #333;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -547,7 +569,6 @@ font-size: 1.8rem;
 #resultMap {
     height: 300px;
     margin: 20px 0;
-    border-radius: 8px;
     overflow: hidden;
     border: 2px solid #e0e0e0;
 }
@@ -569,10 +590,9 @@ font-size: 1.8rem;
 }
 
 .round-result {
-    padding: 12px;
+    padding: 10px;
     margin: 8px 0;
     background: #f8f9fa;
-    border-radius: 6px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -706,9 +726,8 @@ font-size: 1.8rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
+    padding: 12px;
     background: #f8f9fa;
-    border-radius: 10px;
     transition: background 0.2s ease;
 }
 

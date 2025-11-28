@@ -147,8 +147,10 @@ let gameState = {
         mapLayers: true,
         showRegion: true,
         turnAround: true,
-        zoom: true
-    }
+        zoom: true,
+        targetOriginal: true // Score based on original location (true) or current position (false)
+    },
+    originalLocation: null // Store the original start location for explorer mode
 };
 
 // Initialize the game when page loads
@@ -241,6 +243,10 @@ function setupPanoramaErrorHandlers() {
         // Show start screen, hide game screen
         document.getElementById('startScreen').style.display = 'flex';
         document.getElementById('gameScreen').style.display = 'none';
+        
+        // Remove full-screen classes
+        document.body.classList.remove('game-active');
+        document.getElementById('app').classList.remove('game-active');
     });
 }
 
@@ -277,11 +283,25 @@ function setupDifficultyPreferences() {
     document.getElementById('pref-zoom').addEventListener('change', (e) => {
         gameState.preferences.zoom = e.target.checked;
     });
+    
+    document.getElementById('pref-targetOriginal').addEventListener('change', (e) => {
+        gameState.preferences.targetOriginal = e.target.checked;
+    });
 }
 
 function setupStartScreen() {
-    let selectedRegion = null;
-    let selectedMode = null;
+    let selectedRegion = 'czechia';
+    let selectedMode = 'static';
+    
+    // Preselect Czech Republic (first region) and Static mode
+    const czechiaBtn = document.querySelector('.region-btn[data-region="czechia"]');
+    if (czechiaBtn) czechiaBtn.classList.add('selected');
+    
+    const staticBtn = document.querySelector('.mode-btn[data-mode="static"]');
+    if (staticBtn) staticBtn.classList.add('selected');
+    
+    // Enable start button since we have preselections
+    document.getElementById('startGameBtn').disabled = false;
     
     // Region selection
     document.querySelectorAll('.region-btn').forEach(btn => {
@@ -340,6 +360,10 @@ function startGame() {
     document.getElementById('startScreen').style.display = 'none';
     document.querySelector('header').style.display = 'flex';
     document.getElementById('gameContainer').style.display = 'block';
+    
+    // Add full-screen classes
+    document.body.classList.add('game-active');
+    document.getElementById('app').classList.add('game-active');
     
     gameState.gameStarted = true;
 
@@ -401,6 +425,23 @@ function setupEventListeners() {
     // Return to menu button
     document.getElementById('returnToMenu').addEventListener('click', () => {
         returnToStartScreen();
+    });
+    
+    // Reset location button (explorer mode)
+    document.getElementById('resetLocationBtn').addEventListener('click', async () => {
+        if (gameState.originalLocation) {
+            // Destroy existing panorama
+            if (gameState.panoramaInstance) {
+                gameState.panoramaInstance.destroy();
+                gameState.panoramaInstance = null;
+            }
+            
+            // Reload at original location
+            await loadPanorama(gameState.originalLocation.lat, gameState.originalLocation.lon);
+            
+            // Reset current location to original
+            gameState.currentLocation = { ...gameState.originalLocation };
+        }
     });
 
     // Toggle map size button
@@ -527,7 +568,7 @@ async function startNewRound() {
     const submitBtn = document.getElementById('submitGuess');
     submitBtn.style.display = 'inline-block';
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Place your guess on the map';
+    submitBtn.textContent = 'Submit';
     document.getElementById('nextRound').style.display = 'none';
 
     // Reset map view to region bounds
@@ -563,6 +604,15 @@ async function startNewRound() {
     }
 
     gameState.currentLocation = location;
+    gameState.originalLocation = { lat: location.lat, lon: location.lon }; // Store original location
+    
+    // Show/hide reset button based on mode
+    const resetBtn = document.getElementById('resetLocationBtn');
+    if (gameState.selectedMode === 'explorer') {
+        resetBtn.style.display = 'block';
+    } else {
+        resetBtn.style.display = 'none';
+    }
 
     // Load panorama - retry if it fails
     const loaded = await loadPanorama(location.lat, location.lon);
@@ -770,10 +820,17 @@ function submitGuess() {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Round Complete';
 
+    // Determine target location based on preference
+    // If targetOriginal is true (or explorer mode not active), use original location
+    // Otherwise use current panorama position
+    const targetLocation = (gameState.preferences.targetOriginal || gameState.selectedMode !== 'explorer')
+        ? gameState.originalLocation
+        : gameState.currentLocation;
+    
     // Calculate distance
     const distance = calculateDistance(
-        gameState.currentLocation.lat,
-        gameState.currentLocation.lon,
+        targetLocation.lat,
+        targetLocation.lon,
         gameState.guessLocation.lat,
         gameState.guessLocation.lon
     );
@@ -786,7 +843,7 @@ function submitGuess() {
         round: gameState.currentRound,
         distance: distance,
         score: score,
-        actualLocation: { ...gameState.currentLocation },
+        actualLocation: { ...targetLocation },
         guessLocation: { ...gameState.guessLocation }
     };
     gameState.rounds.push(roundResult);
@@ -986,6 +1043,10 @@ function returnToStartScreen() {
     // Hide game elements
     document.querySelector('header').style.display = 'none';
     document.getElementById('gameContainer').style.display = 'none';
+    
+    // Remove full-screen classes
+    document.body.classList.remove('game-active');
+    document.getElementById('app').classList.remove('game-active');
     
     // Destroy panorama
     if (gameState.panoramaInstance) {
