@@ -32,10 +32,12 @@ cp config.example.js config.js
 # Edit config.js and add your API key(s)
 ```
 
-**Single API Key:**
+**Configure API Keys:**
 ```javascript
 const APP_CONFIG = {
-    MAPY_API_KEY: 'your-api-key-here'
+    MAPY_API_KEYS: [
+        'your-api-key-here'
+    ]
 };
 ```
 
@@ -50,7 +52,7 @@ const APP_CONFIG = {
 };
 ```
 
-The game will automatically rotate through multiple keys to distribute API usage and avoid rate limits.
+The game will automatically rotate through multiple keys to distribute API usage and avoid rate limits. You can use a single key in the array for basic usage.
 
 ### 3. Run the Game
 

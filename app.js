@@ -6,8 +6,7 @@ if (typeof APP_CONFIG !== 'undefined') {
     // Support multiple API keys
     if (APP_CONFIG.MAPY_API_KEYS && Array.isArray(APP_CONFIG.MAPY_API_KEYS) && APP_CONFIG.MAPY_API_KEYS.length > 0) {
         API_KEYS = APP_CONFIG.MAPY_API_KEYS;
-    } else if (APP_CONFIG.MAPY_API_KEY) {
-        API_KEYS = [APP_CONFIG.MAPY_API_KEY];
+        console.log(`🔑 Loaded ${API_KEYS.length} API key(s)`);
     }
 } else {
     API_KEYS = ['YOUR_API_KEY'];
@@ -15,8 +14,10 @@ if (typeof APP_CONFIG !== 'undefined') {
 
 // Function to get current API key and rotate to next
 function getApiKey() {
-    const key = API_KEYS[currentKeyIndex];
+    const keyIndex = currentKeyIndex;
+    const key = API_KEYS[keyIndex];
     currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+    console.log(`🔑 Using API key #${keyIndex + 1} of ${API_KEYS.length}`);
     return key;
 }
 

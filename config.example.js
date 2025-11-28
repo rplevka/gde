@@ -2,10 +2,8 @@
 // Copy this file to config.js and add your API key(s)
 
 const APP_CONFIG = {
-    // Single API key (legacy support)
-    MAPY_API_KEY: 'YOUR_API_KEY_HERE',
-    
-    // Or use multiple API keys (will rotate between them)
+    // Add your API key(s) here
+    // Single key or multiple keys (will rotate between them)
     MAPY_API_KEYS: [
         'YOUR_API_KEY_1',
         'YOUR_API_KEY_2',
