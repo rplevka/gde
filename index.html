@@ -241,6 +241,23 @@
                 </div>
             </div>
         </div>
+
+        <!-- Panorama Error Modal -->
+        <div id="panoramaErrorModal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 800px;">
+                <h2>⚠️ No Panorama Found</h2>
+                <p>Could not find a panorama in the selected region after <span id="attemptCount">0</span> attempts.</p>
+                <div id="debugMap" style="width: 100%; height: 400px; margin: 20px 0; border-radius: 8px;"></div>
+                <p style="font-size: 0.9em; color: #666;">
+                    🔴 Red dots = attempts outside polygon<br>
+                    🟢 Green dots = attempts inside polygon (but no panorama found)
+                </p>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                    <button id="retryPanorama" class="btn btn-success">Retry</button>
+                    <button id="cancelPanorama" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="config.js"></script>

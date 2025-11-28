@@ -34,8 +34,8 @@ const CONFIG = {
     MAX_ATTEMPTS_PER_LOCATION: 10
 };
 
-// Region boundaries (approximate bounding boxes)
-const REGIONS = {
+// Region boundaries (bounding boxes and polygons)
+let REGIONS = {
     czechia: {
         name: 'Czech Republic',
         bounds: {
@@ -83,6 +83,45 @@ const REGIONS = {
     }
 };
 
+// Load region boundaries from GeoJSON file
+async function loadRegionBoundaries() {
+    console.log('🔄 Starting to load region boundaries...');
+    try {
+        console.log('📡 Fetching regions-boundaries.json...');
+        const response = await fetch('regions-boundaries.json');
+        console.log('📡 Response status:', response.status, response.ok);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const boundaries = await response.json();
+        console.log('📦 JSON parsed successfully');
+        
+        console.log('Boundaries file loaded:', Object.keys(boundaries));
+        
+        // Add polygon paths to each region
+        for (const [key, region] of Object.entries(REGIONS)) {
+            if (boundaries[key]) {
+                console.log(`Processing ${key}:`, boundaries[key].coordinates);
+                // Convert GeoJSON coordinates to Leaflet format [lat, lon]
+                // GeoJSON format: coordinates[0] = array of [lon, lat] pairs
+                const geoCoords = boundaries[key].coordinates[0];
+                console.log(`First 3 coords for ${key}:`, geoCoords.slice(0, 3));
+                const coords = geoCoords.map(coord => [coord[1], coord[0]]);
+                region.paths = [coords];
+                console.log(`✓ Loaded ${coords.length} points for ${key}`, coords.slice(0, 2));
+            } else {
+                console.log(`✗ No boundary data for ${key}`);
+            }
+        }
+        
+        console.log('✅ Region boundaries loaded successfully');
+        console.log('REGIONS after loading:', REGIONS);
+    } catch (error) {
+        console.error('❌ Could not load region boundaries:', error);
+        console.error('Error details:', error.message, error.stack);
+    }
+}
+
 // Game State
 let gameState = {
     currentRound: 1,
@@ -112,10 +151,97 @@ let gameState = {
 };
 
 // Initialize the game when page loads
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadRegionBoundaries();
     setupStartScreen();
     setupDifficultyPreferences();
+    setupPanoramaErrorHandlers();
 });
+
+function showPanoramaErrorModal() {
+    const modal = document.getElementById('panoramaErrorModal');
+    modal.style.display = 'flex';
+    
+    // Update attempt count
+    document.getElementById('attemptCount').textContent = gameState.lastSearchAttempts.length;
+    
+    // Create debug map
+    setTimeout(() => {
+        const mapContainer = document.getElementById('debugMap');
+        mapContainer.innerHTML = ''; // Clear previous map
+        
+        const debugMap = L.map('debugMap').setView([50, 15], 7);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(debugMap);
+        
+        // Add region polygon if available
+        if (gameState.lastSearchRegion.paths) {
+            gameState.lastSearchRegion.paths.forEach(path => {
+                L.polygon(path, {
+                    color: '#667eea',
+                    fillColor: '#667eea',
+                    fillOpacity: 0.1,
+                    weight: 2
+                }).addTo(debugMap);
+            });
+        }
+        
+        // Add all attempt points
+        gameState.lastSearchAttempts.forEach(attempt => {
+            const color = attempt.inside ? 'green' : 'red';
+            L.circleMarker([attempt.lat, attempt.lon], {
+                radius: 3,
+                fillColor: color,
+                color: color,
+                weight: 1,
+                opacity: 0.7,
+                fillOpacity: 0.5
+            }).addTo(debugMap);
+        });
+        
+        // Fit map to region bounds
+        const bounds = L.latLngBounds(
+            [gameState.lastSearchRegion.bounds.minLat, gameState.lastSearchRegion.bounds.minLon],
+            [gameState.lastSearchRegion.bounds.maxLat, gameState.lastSearchRegion.bounds.maxLon]
+        );
+        debugMap.fitBounds(bounds, { padding: [20, 20] });
+    }, 100);
+}
+
+function setupPanoramaErrorHandlers() {
+    // Retry button - try to start the round again
+    document.getElementById('retryPanorama').addEventListener('click', () => {
+        document.getElementById('panoramaErrorModal').style.display = 'none';
+        startNewRound();
+    });
+    
+    // Cancel button - return to start screen
+    document.getElementById('cancelPanorama').addEventListener('click', () => {
+        document.getElementById('panoramaErrorModal').style.display = 'none';
+        // Reset game state
+        gameState.gameStarted = false;
+        gameState.currentRound = 1;
+        gameState.totalScore = 0;
+        gameState.rounds = [];
+        
+        // Clean up panorama and map
+        if (gameState.panoramaInstance) {
+            gameState.panoramaInstance.destroy();
+            gameState.panoramaInstance = null;
+        }
+        if (gameState.map) {
+            gameState.map.remove();
+            gameState.map = null;
+        }
+        
+        // Show start screen, hide game screen
+        document.getElementById('startScreen').style.display = 'flex';
+        document.getElementById('gameScreen').style.display = 'none';
+    });
+}
 
 function setupDifficultyPreferences() {
     // Open difficulty modal
@@ -333,9 +459,10 @@ function initializeMap() {
         gameState.map.fitBounds(bounds, { padding: [20, 20] });
     }, 100);
 
-    // Add custom region overlay if using custom region and preference is enabled
-    if (gameState.preferences.showRegion && gameState.selectedRegion === 'custom' && gameState.customRegion && gameState.customRegion.paths) {
-        gameState.customRegion.paths.forEach(path => {
+    // Add region overlay if preference is enabled
+    if (gameState.preferences.showRegion && region.paths) {
+        console.log(`Adding region overlay with ${region.paths.length} path(s), ${region.paths[0].length} points`);
+        region.paths.forEach(path => {
             L.polygon(path, {
                 color: '#667eea',
                 fillColor: '#667eea',
@@ -344,6 +471,11 @@ function initializeMap() {
                 opacity: 0.4,
                 interactive: false // Don't interfere with map clicks
             }).addTo(gameState.map);
+        });
+    } else {
+        console.log('Region overlay not shown:', {
+            showRegion: gameState.preferences.showRegion,
+            hasPaths: !!region.paths
         });
     }
 
@@ -425,7 +557,7 @@ async function startNewRound() {
     const location = await findRandomLocationWithPanorama();
     
     if (!location) {
-        showError('Could not find a panorama in the selected region. Try a different region.');
+        showPanoramaErrorModal();
         return;
     }
 
@@ -447,16 +579,24 @@ async function findRandomLocationWithPanorama() {
         ? gameState.customRegion 
         : REGIONS[gameState.selectedRegion];
     
-    // Use more attempts for custom regions since we're filtering by polygon
-    const maxAttempts = region.paths ? CONFIG.MAX_ATTEMPTS_PER_LOCATION * 10 : CONFIG.MAX_ATTEMPTS_PER_LOCATION;
+    console.log('🔍 Searching for panorama in region:', gameState.selectedRegion);
+    console.log('Region has paths:', !!region.paths);
+    console.log('Region bounds:', region.bounds);
+    
+    // Use more attempts for regions with polygon paths since we're filtering by polygon
+    const maxAttempts = region.paths ? CONFIG.MAX_ATTEMPTS_PER_LOCATION * 20 : CONFIG.MAX_ATTEMPTS_PER_LOCATION;
     let attempts = 0;
+    const debugAttempts = []; // Track all attempts for debugging
+    let insideCount = 0;
+    let outsideCount = 0;
 
     while (attempts < maxAttempts) {
         // Generate random coordinates within region bounds
         const lat = region.bounds.minLat + Math.random() * (region.bounds.maxLat - region.bounds.minLat);
         const lon = region.bounds.minLon + Math.random() * (region.bounds.maxLon - region.bounds.minLon);
         
-        // If custom region with paths, check if point is inside any of the drawn polygons
+        // If region has polygon paths, check if point is inside the polygon
+        let insidePolygon = true;
         if (region.paths) {
             let insideAnyPolygon = false;
             for (const path of region.paths) {
@@ -466,10 +606,13 @@ async function findRandomLocationWithPanorama() {
                 }
             }
             if (!insideAnyPolygon) {
+                debugAttempts.push({ lat, lon, inside: false, hasPanorama: false });
+                outsideCount++;
                 attempts++;
                 continue; // Skip this point, it's outside all drawn areas
             }
-            console.log(`Found point inside drawn region after ${attempts} attempts`);
+            insidePolygon = true;
+            insideCount++;
         }
 
         // Check if panorama exists at this location
@@ -487,15 +630,27 @@ async function findRandomLocationWithPanorama() {
                     lon: result.info.lon,
                     date: result.info.date
                 };
+            } else {
+                debugAttempts.push({ lat, lon, inside: insidePolygon, hasPanorama: false });
             }
         } catch (error) {
             console.error('Error checking panorama:', error);
+            debugAttempts.push({ lat, lon, inside: insidePolygon, hasPanorama: false, error: true });
         }
 
         attempts++;
     }
 
-    return null;
+    // Store debug info for error modal
+    gameState.lastSearchAttempts = debugAttempts;
+    gameState.lastSearchRegion = region;
+    
+    console.log(`❌ Failed to find panorama after ${attempts} attempts`);
+    console.log(`Points outside polygon: ${outsideCount}`);
+    console.log(`Points inside polygon (checked): ${insideCount}`);
+    console.log(`Total debug attempts logged: ${debugAttempts.length}`);
+    
+    return null; // No panorama found after all attempts
 }
 
 async function loadPanorama(lat, lon) {
@@ -1019,6 +1174,12 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
             const allLats = allPaths.flat().map(p => p.lat);
             const allLons = allPaths.flat().map(p => p.lng);
             
+            // Convert paths from Leaflet LatLng objects to [lat, lon] arrays
+            // to match the format used by pre-defined regions
+            const convertedPaths = allPaths.map(path => 
+                path.map(point => [point.lat, point.lng])
+            );
+            
             gameState.customRegion = {
                 name: 'Custom Region',
                 bounds: {
@@ -1027,7 +1188,7 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
                     minLon: Math.min(...allLons),
                     maxLon: Math.max(...allLons)
                 },
-                paths: allPaths // Store all paths (plural)
+                paths: convertedPaths // Store converted paths in [lat, lon] format
             };
             
             // Mark draw region button as selected
@@ -1066,10 +1227,11 @@ function isPointInPolygon(lat, lon, path) {
     let inside = false;
     
     for (let i = 0, j = path.length - 1; i < path.length; j = i++) {
-        const xi = path[i].lat;
-        const yi = path[i].lng;
-        const xj = path[j].lat;
-        const yj = path[j].lng;
+        // Path is array of [lat, lon] pairs
+        const xi = path[i][0]; // lat
+        const yi = path[i][1]; // lon
+        const xj = path[j][0]; // lat
+        const yj = path[j][1]; // lon
         
         const intersect = ((yi > lon) !== (yj > lon)) &&
             (lat < (xj - xi) * (lon - yi) / (yj - yi) + xi);

@@ -8,6 +8,9 @@ A geo-guessing game powered by Mapy.cz panoramas. Explore Czech Republic through
 - 🗺️ **Multiple Regions**: Czech Republic, Prague, Brno, Moravia, Bohemia
 - ✏️ **Custom Regions**: Draw your own play areas on the map
 - 📍 **Interactive Minimap**: Expandable map overlay for making guesses
+- 🗾 **Region Boundaries**: Visual polygon overlays showing exact play area
+- ⚙️ **Difficulty Preferences**: Customize game difficulty with toggles
+- 🔑 **API Key Pool**: Support for multiple API keys with automatic rotation
 - 🎯 **Scoring System**: Distance-based scoring (max 5000 points per round)
 - 📊 **Round Breakdown**: Detailed results with visual comparison
 
