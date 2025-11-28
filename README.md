@@ -56,7 +56,19 @@ The game will automatically rotate through multiple keys to distribute API usage
 
 ### 3. Run the Game
 
-Open `index.html` in a web browser, or serve it with a local server:
+**Option A: Using Docker (Recommended)**
+
+```bash
+# Build the Docker image
+docker build -t gde-game .
+
+# Run the container
+docker run -p 8000:8000 gde-game
+
+# Then open http://localhost:8000
+```
+
+**Option B: Local Server**
 
 ```bash
 # Using Python
@@ -67,6 +79,10 @@ npx http-server
 
 # Then open http://localhost:8000
 ```
+
+**Option C: Direct File**
+
+Simply open `index.html` in a web browser (some features may require a server)
 
 ## How to Play
 
