@@ -13,7 +13,7 @@ Client-side JavaScript applications expose all code to users, including API keys
 
 #### Option 1: Backend Proxy (Recommended for Production)
 
-Use the included `server.py` which acts as a proxy:
+Use the included `server.go` which acts as a high-performance proxy:
 
 **How it works:**
 1. API keys are stored server-side (environment variables)
@@ -40,7 +40,7 @@ docker run -p 8000:8000 \
 export MAPY_API_KEYS="key1,key2,key3"
 
 # Run server
-python3 server.py
+go run server.go
 ```
 
 **Client-side changes needed:**
@@ -83,6 +83,6 @@ For production applications:
 By default, this app uses client-side `config.js` for simplicity. For production:
 
 1. Delete or don't commit `config.js`
-2. Use `server.py` with environment variables
-3. Update client code to use proxy endpoints
+2. Use `server.go` with environment variables (or Docker)
+3. Client code already uses proxy endpoints via `panorama-proxy.js`
 4. Deploy with proper environment variable management

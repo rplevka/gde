@@ -41,21 +41,23 @@ docker run -p 8000:8000 \
 # Then open http://localhost:8000
 ```
 
-This uses a backend proxy server that keeps API keys secure on the server side.
+This uses a high-performance Go proxy server that keeps API keys secure on the server side.
 
-**Option B: Local Python Server with Proxy**
+**Option B: Local Go Server with Proxy**
 
 ```bash
+# Install Go if you don't have it: https://go.dev/dl/
+
 # Set API keys as environment variable
 export MAPY_API_KEYS="your-key-1,your-key-2"
 
-# Run the secure proxy server
-python3 server.py
+# Build and run the Go server
+go run server.go
 
 # Then open http://localhost:8000
 ```
 
-This runs the same secure proxy server that Docker uses.
+This runs the same high-performance proxy server that Docker uses.
 
 ## How to Play
 
@@ -106,7 +108,7 @@ gde/
 - **Mapy.cz Panorama API** - Street-level imagery
 - **Leaflet.js** - Interactive maps
 - **Vanilla JavaScript** - No frameworks, pure vibes
-- **Python Proxy Server** - Secure API key handling
+- **Go Proxy Server** - High-performance secure API key handling with connection pooling
 
 ## Credits
 
