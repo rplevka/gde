@@ -1,34 +1,9 @@
-// API Key Management
-let API_KEYS = [];
-let currentKeyIndex = 0;
-
-if (typeof APP_CONFIG !== 'undefined') {
-    // Support multiple API keys
-    if (APP_CONFIG.MAPY_API_KEYS && Array.isArray(APP_CONFIG.MAPY_API_KEYS) && APP_CONFIG.MAPY_API_KEYS.length > 0) {
-        API_KEYS = APP_CONFIG.MAPY_API_KEYS;
-        console.log(`🔑 Loaded ${API_KEYS.length} API key(s)`);
-    }
-} else {
-    API_KEYS = ['YOUR_API_KEY'];
-}
-
-// Function to get current API key and rotate to next
-function getApiKey() {
-    const keyIndex = currentKeyIndex;
-    const key = API_KEYS[keyIndex];
-    currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
-    console.log(`🔑 Using API key #${keyIndex + 1} of ${API_KEYS.length}`);
-    return key;
-}
-
-// Function to get API key without rotation (for display/check)
-function getCurrentApiKey() {
-    return API_KEYS[currentKeyIndex];
-}
+// API requests now go through proxy server at /api/mapy/*
+// Use dummy key - proxy server will replace with real key
+const PROXY_API_KEY = 'proxy';
 
 // Game Configuration
 const CONFIG = {
-    API_KEY: getCurrentApiKey(), // Initial key for validation
     TOTAL_ROUNDS: 5,
     MAX_SCORE_PER_ROUND: 5000,
     PANORAMA_SEARCH_RADIUS: 100, // meters
@@ -350,12 +325,6 @@ function setupStartScreen() {
 }
 
 function startGame() {
-    // Check if API key is set
-    if (CONFIG.API_KEY === 'YOUR_API_KEY') {
-        showError('Please set your Mapy.cz API key in app.js');
-        return;
-    }
-    
     // Hide start screen
     document.getElementById('startScreen').style.display = 'none';
     document.querySelector('header').style.display = 'flex';
@@ -552,7 +521,7 @@ function updateMapLayer() {
 
     // Add new tile layer
     const mapset = gameState.currentMapLayer;
-    L.tileLayer(`https://api.mapy.com/v1/maptiles/${mapset}/256/{z}/{x}/{y}?apikey=${getApiKey()}`, {
+    L.tileLayer(`/api/mapy/v1/maptiles/${mapset}/256/{z}/{x}/{y}`, {
         minZoom: 0,
         maxZoom: 20,
         attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
@@ -671,7 +640,7 @@ async function findRandomLocationWithPanorama() {
             const result = await Panorama.panoramaExists({
                 lon: lon,
                 lat: lat,
-                apiKey: getApiKey(),
+                apiKey: PROXY_API_KEY,
                 radius: CONFIG.PANORAMA_SEARCH_RADIUS
             });
 
@@ -715,7 +684,7 @@ async function loadPanorama(lat, lon) {
             parent: container,
             lon: lon,
             lat: lat,
-            apiKey: getApiKey(),
+            apiKey: PROXY_API_KEY,
             radius: CONFIG.PANORAMA_SEARCH_RADIUS,
             showNavigation: showNavigation,
             lang: 'en'
@@ -912,7 +881,7 @@ function showRoundResult(result) {
         (result.actualLocation.lon + result.guessLocation.lon) / 2
     ], 10);
 
-    L.tileLayer(`https://api.mapy.com/v1/maptiles/basic/256/{z}/{x}/{y}?apikey=${getApiKey()}`, {
+    L.tileLayer(`/api/mapy/v1/maptiles/basic/256/{z}/{x}/{y}`, {
         attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s.</a>',
     }).addTo(gameState.resultMap);
 
@@ -1103,7 +1072,7 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
         touchZoom: false
     }).setView([49.8, 15.5], 7);
     
-    L.tileLayer(`https://api.mapy.com/v1/maptiles/basic/256/{z}/{x}/{y}?apikey=${getApiKey()}`, {
+    L.tileLayer(`/api/mapy/v1/maptiles/basic/256/{z}/{x}/{y}`, {
         attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s.</a>',
     }).addTo(gameState.drawMap);
     

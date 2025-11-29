@@ -16,73 +16,46 @@ A geo-guessing game powered by Mapy.cz panoramas. Explore Czech Republic through
 
 ## Setup
 
-### 1. Get API Key
+### 1. Get API Keys
 
-Get a free API key from [Mapy.cz Developer Portal](https://developer.mapy.com):
+Get your free API key(s) from [Mapy.cz Developer Portal](https://developer.mapy.com):
 1. Sign up for an account
 2. Create a new project
-3. Generate an API key
+3. Generate one or more API keys
 
-### 2. Configure API Key
+**Note:** API keys are stored server-side for security. You'll pass them as environment variables when running the app.
 
-```bash
-# Copy the example config file
-cp config.example.js config.js
+### 2. Run the Game
 
-# Edit config.js and add your API key(s)
-```
-
-**Configure API Keys:**
-```javascript
-const APP_CONFIG = {
-    MAPY_API_KEYS: [
-        'your-api-key-here'
-    ]
-};
-```
-
-**Multiple API Keys (recommended for high usage):**
-```javascript
-const APP_CONFIG = {
-    MAPY_API_KEYS: [
-        'your-api-key-1',
-        'your-api-key-2',
-        'your-api-key-3'
-    ]
-};
-```
-
-The game will automatically rotate through multiple keys to distribute API usage and avoid rate limits. You can use a single key in the array for basic usage.
-
-### 3. Run the Game
-
-**Option A: Using Docker (Recommended)**
+**Option A: Using Docker with Secure Proxy (Recommended)**
 
 ```bash
 # Build the Docker image
 docker build -t gde-game .
 
-# Run the container
-docker run -p 8000:8000 gde-game
+# Run with API keys as environment variable (keeps keys server-side)
+docker run -p 8000:8000 \
+  -e MAPY_API_KEYS="your-key-1,your-key-2" \
+  gde-game
 
 # Then open http://localhost:8000
 ```
 
-**Option B: Local Server**
+This uses a backend proxy server that keeps API keys secure on the server side.
+
+**Option B: Local Python Server with Proxy**
 
 ```bash
-# Using Python
-python3 -m http.server 8000
+# Set API keys as environment variable
+export MAPY_API_KEYS="your-key-1,your-key-2"
 
-# Using Node.js
-npx http-server
+# Run the secure proxy server
+python3 server.py
 
 # Then open http://localhost:8000
 ```
 
-**Option C: Direct File**
-
-Simply open `index.html` in a web browser (some features may require a server)
+This runs the same secure proxy server that Docker uses.
 
 ## How to Play
 
@@ -114,11 +87,26 @@ gde/
 └── README.md           # This file
 ```
 
+## Security
+
+⚠️ **Important**: API keys in client-side JavaScript are always exposed and can be extracted from browser DevTools.
+
+**For Production Use:**
+- Use the included `server.py` proxy server (runs automatically with Docker)
+- Store API keys as environment variables, never in code
+- See [SECURITY.md](SECURITY.md) for detailed security guide
+
+**For Development:**
+- Use `config.js` with API key restrictions in Mapy.cz console
+- Restrict by HTTP referrer or IP address
+- Monitor usage and set rate limits
+
 ## Technologies
 
 - **Mapy.cz Panorama API** - Street-level imagery
 - **Leaflet.js** - Interactive maps
 - **Vanilla JavaScript** - No frameworks, pure vibes
+- **Python Proxy Server** - Secure API key handling
 
 ## Credits
 

@@ -1,0 +1,16 @@
+# Git files
+.git
+.gitignore
+
+# Config files (user should provide their own)
+config.js
+
+# Documentation
+README.md
+
+# Node modules if any
+node_modules
+
+# OS files
+.DS_Store
+Thumbs.db
