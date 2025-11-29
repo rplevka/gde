@@ -23,9 +23,31 @@ Get your free API key(s) from [Mapy.cz Developer Portal](https://developer.mapy.
 2. Create a new project
 3. Generate one or more API keys
 
-**Note:** API keys are stored server-side for security. You'll pass them as environment variables when running the app.
+**Note:** API keys are stored server-side for security using a YAML configuration file.
 
-### 2. Run the Game
+### 2. Configure API Keys
+
+Create `api_keys.yaml` from the example:
+
+```bash
+cp api_keys.example.yaml api_keys.yaml
+```
+
+Edit `api_keys.yaml` and add your API keys with descriptive names:
+
+```yaml
+api_keys:
+  - production_key: "your-actual-api-key-1"
+  - backup_key: "your-actual-api-key-2"
+  - dev_key: "your-actual-api-key-3"
+```
+
+**Features:**
+- **Named keys**: Each key has an ID for easy identification in logs
+- **Automatic retry**: If a key fails (401/403), automatically tries the next one
+- **Fallback**: Can still use `MAPY_API_KEYS` environment variable if YAML file is missing
+
+### 3. Run the Game
 
 **Option A: Using Docker with Secure Proxy (Recommended)**
 
@@ -33,7 +55,12 @@ Get your free API key(s) from [Mapy.cz Developer Portal](https://developer.mapy.
 # Build the Docker image
 docker build -t gde-game .
 
-# Run with API keys as environment variable (keeps keys server-side)
+# Run with api_keys.yaml mounted as volume
+docker run -p 8000:8000 \
+  -v $(pwd)/api_keys.yaml:/app/api_keys.yaml \
+  gde-game
+
+# Alternative: Use environment variable (fallback method)
 docker run -p 8000:8000 \
   -e MAPY_API_KEYS="your-key-1,your-key-2" \
   gde-game
@@ -41,23 +68,23 @@ docker run -p 8000:8000 \
 # Then open http://localhost:8000
 ```
 
-This uses a high-performance Go proxy server that keeps API keys secure on the server side.
+This uses a high-performance Go proxy server with automatic retry logic.
 
 **Option B: Local Go Server with Proxy**
 
 ```bash
 # Install Go if you don't have it: https://go.dev/dl/
 
-# Set API keys as environment variable
-export MAPY_API_KEYS="your-key-1,your-key-2"
+# Make sure api_keys.yaml is configured (see step 2)
 
-# Build and run the Go server
+# Download dependencies and run
+go mod download
 go run server.go
 
 # Then open http://localhost:8000
 ```
 
-This runs the same high-performance proxy server that Docker uses.
+The server will automatically load keys from `api_keys.yaml` and log which key is being used for each request.
 
 ## How to Play
 
