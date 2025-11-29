@@ -123,9 +123,13 @@ let gameState = {
         showRegion: true,
         turnAround: true,
         zoom: true,
-        targetOriginal: true // Score based on original location (true) or current position (false)
+        targetOriginal: true, // Score based on original location (true) or current position (false)
+        timeTrial: false, // Enable time trial mode
+        timeLimit: 120 // Time limit per round in seconds
     },
-    originalLocation: null // Store the original start location for explorer mode
+    originalLocation: null, // Store the original start location for explorer mode
+    timer: null, // Timer interval
+    timeRemaining: 0 // Seconds remaining in current round
 };
 
 // Initialize the game when page loads
@@ -261,6 +265,16 @@ function setupDifficultyPreferences() {
     
     document.getElementById('pref-targetOriginal').addEventListener('change', (e) => {
         gameState.preferences.targetOriginal = e.target.checked;
+    });
+    
+    document.getElementById('pref-timeTrial').addEventListener('change', (e) => {
+        gameState.preferences.timeTrial = e.target.checked;
+        // Show/hide time limit input
+        document.getElementById('timeTrialSettings').style.display = e.target.checked ? 'flex' : 'none';
+    });
+    
+    document.getElementById('pref-timeLimit').addEventListener('change', (e) => {
+        gameState.preferences.timeLimit = parseInt(e.target.value);
     });
 }
 
@@ -528,9 +542,181 @@ function updateMapLayer() {
     }).addTo(gameState.map);
 }
 
+// Timer functions
+function startTimer() {
+    if (!gameState.preferences.timeTrial) return;
+    
+    // Clear any existing timer
+    if (gameState.timer) {
+        clearInterval(gameState.timer);
+    }
+    
+    // Initialize time remaining
+    gameState.timeRemaining = gameState.preferences.timeLimit;
+    
+    // Show timer display
+    const timerDisplay = document.getElementById('timerDisplay');
+    timerDisplay.style.display = 'flex';
+    
+    // Update timer display
+    updateTimerDisplay();
+    
+    // Start countdown
+    gameState.timer = setInterval(() => {
+        gameState.timeRemaining--;
+        updateTimerDisplay();
+        
+        // Check if time is up
+        if (gameState.timeRemaining <= 0) {
+            clearInterval(gameState.timer);
+            handleTimeOut();
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    if (gameState.timer) {
+        clearInterval(gameState.timer);
+        gameState.timer = null;
+    }
+    
+    // Remove warning class from header when timer stops
+    const header = document.querySelector('header');
+    if (header) {
+        header.classList.remove('time-warning');
+    }
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(gameState.timeRemaining / 60);
+    const seconds = gameState.timeRemaining % 60;
+    const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    const timerValue = document.getElementById('timerValue');
+    timerValue.textContent = timeString;
+    
+    const header = document.querySelector('header');
+    
+    // Add warning class for last 10 seconds
+    if (gameState.timeRemaining <= 10) {
+        timerValue.classList.add('warning');
+        header.classList.add('time-warning');
+    } else {
+        timerValue.classList.remove('warning');
+        header.classList.remove('time-warning');
+    }
+}
+
+function handleTimeOut() {
+    // Don't process if round already submitted
+    if (gameState.roundSubmitted) return;
+    
+    // Mark round as submitted
+    gameState.roundSubmitted = true;
+    
+    // Record round with 0 score (no guess made)
+    gameState.rounds.push({
+        round: gameState.currentRound,
+        score: 0,
+        distance: null,
+        actualLocation: gameState.preferences.targetOriginal ? gameState.originalLocation : gameState.currentLocation,
+        guessLocation: null, // No guess was made
+        timeOut: true
+    });
+    
+    // Update total score (no change)
+    updateScoreDisplay();
+    
+    // Show result
+    showTimeOutResult();
+}
+
+function showTimeOutResult() {
+    // Remove warning class from header only (keep timer text blinking)
+    const header = document.querySelector('header');
+    if (header) {
+        header.classList.remove('time-warning');
+    }
+    
+    // Update result details
+    document.getElementById('resultTitle').textContent = '⏰ Time\'s Up!';
+    document.getElementById('resultDistance').textContent = 'No guess submitted';
+    document.getElementById('resultScore').textContent = '0 points';
+    
+    // Get actual location
+    const actualLocation = gameState.preferences.targetOriginal ? gameState.originalLocation : gameState.currentLocation;
+    
+    // Create result map
+    const resultMapContainer = document.getElementById('resultMap');
+    
+    // Destroy previous result map if it exists
+    if (gameState.resultMap) {
+        gameState.resultMap.remove();
+        gameState.resultMap = null;
+    }
+    
+    resultMapContainer.innerHTML = ''; // Clear previous map
+    
+    // Center on actual location only (no guess)
+    gameState.resultMap = L.map(resultMapContainer).setView([
+        actualLocation.lat,
+        actualLocation.lon
+    ], 12);
+    
+    L.tileLayer(`/api/mapy/v1/maptiles/basic/256/{z}/{x}/{y}`, {
+        attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s.</a>',
+    }).addTo(gameState.resultMap);
+    
+    // Add actual location marker (green)
+    L.marker([actualLocation.lat, actualLocation.lon], {
+        icon: L.divIcon({
+            className: 'custom-marker',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+            html: '<div style="background: #44ff44; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>'
+        })
+    }).addTo(gameState.resultMap).bindPopup('Actual Location');
+    
+    // Show modal first
+    const modal = document.getElementById('resultModal');
+    modal.style.display = 'flex';
+    
+    // Hide submit button
+    document.getElementById('submitGuess').style.display = 'none';
+    
+    const nextBtn = document.getElementById('nextRound');
+    const minimizeBtn = document.getElementById('minimizeResult');
+    
+    if (gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
+        // Last round - hide buttons and auto-show final score
+        nextBtn.style.display = 'none';
+        minimizeBtn.style.display = 'none';
+        
+        // Auto-show final score after a delay
+        setTimeout(() => {
+            modal.style.display = 'none';
+            showFinalScore();
+        }, 5000);
+    } else {
+        // Not last round - show next round button
+        nextBtn.textContent = 'Next Round';
+        nextBtn.style.display = 'inline-block';
+        minimizeBtn.style.display = 'inline-block';
+    }
+    
+    // Wait for modal to be visible, then fix map size
+    setTimeout(() => {
+        gameState.resultMap.invalidateSize();
+        gameState.resultMap.setView([actualLocation.lat, actualLocation.lon], 12);
+    }, 100);
+}
+
 async function startNewRound() {
     // Reset round state
     gameState.roundSubmitted = false;
+    
+    // Stop any existing timer
+    stopTimer();
     
     // Update UI
     updateScoreDisplay();
@@ -590,6 +776,9 @@ async function startNewRound() {
         // If panorama failed to load, try finding another location
         console.log('Panorama failed to load, trying another location...');
         await startNewRound();
+    } else {
+        // Start timer after panorama loads successfully
+        startTimer();
     }
 }
 
@@ -781,6 +970,9 @@ function submitGuess() {
         return;
     }
     
+    // Stop timer
+    stopTimer();
+    
     // Mark round as submitted
     gameState.roundSubmitted = true;
     
@@ -862,7 +1054,7 @@ function calculateScore(distanceKm) {
 function showRoundResult(result) {
     // Update result details
     document.getElementById('resultTitle').textContent = `Round ${result.round} Result`;
-    document.getElementById('resultDistance').textContent = `${result.distance.toFixed(2)} km`;
+    document.getElementById('resultDistance').textContent = result.distance ? `${result.distance.toFixed(2)} km` : 'N/A';
     document.getElementById('resultScore').textContent = `${result.score} points`;
 
     // Create result map
@@ -876,16 +1068,26 @@ function showRoundResult(result) {
     
     resultMapContainer.innerHTML = ''; // Clear previous map
 
-    gameState.resultMap = L.map(resultMapContainer).setView([
-        (result.actualLocation.lat + result.guessLocation.lat) / 2,
-        (result.actualLocation.lon + result.guessLocation.lon) / 2
-    ], 10);
+    // Handle timeout case (no guess location)
+    if (!result.guessLocation) {
+        // Center on actual location only
+        gameState.resultMap = L.map(resultMapContainer).setView([
+            result.actualLocation.lat,
+            result.actualLocation.lon
+        ], 12);
+    } else {
+        // Center between actual and guess locations
+        gameState.resultMap = L.map(resultMapContainer).setView([
+            (result.actualLocation.lat + result.guessLocation.lat) / 2,
+            (result.actualLocation.lon + result.guessLocation.lon) / 2
+        ], 10);
+    }
 
     L.tileLayer(`/api/mapy/v1/maptiles/basic/256/{z}/{x}/{y}`, {
         attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s.</a>',
     }).addTo(gameState.resultMap);
 
-    // Add markers
+    // Add actual location marker (green)
     L.marker([result.actualLocation.lat, result.actualLocation.lon], {
         icon: L.divIcon({
             className: 'custom-marker',
@@ -895,24 +1097,27 @@ function showRoundResult(result) {
         })
     }).addTo(gameState.resultMap).bindPopup('Actual Location');
 
-    L.marker([result.guessLocation.lat, result.guessLocation.lon], {
-        icon: L.divIcon({
-            className: 'custom-marker',
-            iconSize: [20, 20],
-            iconAnchor: [10, 10],
-            html: '<div style="background: #ff4444; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>'
-        })
-    }).addTo(gameState.resultMap).bindPopup('Your Guess');
+    // Only add guess marker and line if guess was made
+    if (result.guessLocation) {
+        L.marker([result.guessLocation.lat, result.guessLocation.lon], {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10],
+                html: '<div style="background: #ff4444; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>'
+            })
+        }).addTo(gameState.resultMap).bindPopup('Your Guess');
 
-    // Draw line between points
-    L.polyline([
-        [result.actualLocation.lat, result.actualLocation.lon],
-        [result.guessLocation.lat, result.guessLocation.lon]
-    ], {
-        color: '#667eea',
-        weight: 3,
-        opacity: 0.7
-    }).addTo(gameState.resultMap);
+        // Draw line between points
+        L.polyline([
+            [result.actualLocation.lat, result.actualLocation.lon],
+            [result.guessLocation.lat, result.guessLocation.lon]
+        ], {
+            color: '#667eea',
+            weight: 3,
+            opacity: 0.7
+        }).addTo(gameState.resultMap);
+    }
 
     // Show modal first
     document.getElementById('resultModal').style.display = 'flex';
@@ -940,12 +1145,18 @@ function showRoundResult(result) {
     setTimeout(() => {
         gameState.resultMap.invalidateSize();
         
-        // Fit bounds to show both markers
-        const bounds = L.latLngBounds([
-            [result.actualLocation.lat, result.actualLocation.lon],
-            [result.guessLocation.lat, result.guessLocation.lon]
-        ]);
-        gameState.resultMap.fitBounds(bounds, { padding: [50, 50] });
+        // Fit bounds to show markers
+        if (result.guessLocation) {
+            // Show both markers
+            const bounds = L.latLngBounds([
+                [result.actualLocation.lat, result.actualLocation.lon],
+                [result.guessLocation.lat, result.guessLocation.lon]
+            ]);
+            gameState.resultMap.fitBounds(bounds, { padding: [50, 50] });
+        } else {
+            // Only actual location, already centered
+            gameState.resultMap.setView([result.actualLocation.lat, result.actualLocation.lon], 12);
+        }
     }, 100);
 }
 
@@ -959,9 +1170,10 @@ function showFinalScore() {
     gameState.rounds.forEach(round => {
         const roundDiv = document.createElement('div');
         roundDiv.className = 'round-result';
+        const distanceText = round.distance !== null ? `${round.distance.toFixed(2)} km` : 'Time out';
         roundDiv.innerHTML = `
             <div>
-                <strong>Round ${round.round}:</strong> ${round.distance.toFixed(2)} km
+                <strong>Round ${round.round}:</strong> ${distanceText}
             </div>
             <div class="score">${round.score} pts</div>
         `;

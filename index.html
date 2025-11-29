@@ -82,8 +82,12 @@
 
         <!-- Header -->
         <header style="display: none;">
-            <h1>🌍 GDE SU?! - Geo Guessing Game</h1>
+            <h1 class="game-title">🌍 GDE SU?!</h1>
             <div class="score-container">
+                <div class="score-item" id="timerDisplay" style="display: none;">
+                    <span class="label">⏱️ Time:</span>
+                    <span id="timerValue">2:00</span>
+                </div>
                 <div class="score-item">
                     <span class="label">Round:</span>
                     <span id="currentRound">1</span>/<span id="totalRounds">5</span>
@@ -211,6 +215,25 @@
                             <input type="checkbox" id="pref-targetOriginal" checked>
                             <span class="slider"></span>
                         </label>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <strong>⏱️ Time Trial Mode</strong>
+                            <p>Add a countdown timer to each round</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="pref-timeTrial">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="preference-item" id="timeTrialSettings" style="display: none;">
+                        <div class="preference-info">
+                            <strong>⏰ Time per Round (seconds)</strong>
+                            <p>How long for each round</p>
+                        </div>
+                        <input type="number" id="pref-timeLimit" min="10" max="600" value="120" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
                     </div>
                 </div>
                 

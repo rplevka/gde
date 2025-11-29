@@ -178,6 +178,20 @@ header {
     right: 0;
     z-index: 150;
     width: 100%;
+    transition: background 0.3s ease;
+}
+
+header.time-warning {
+    animation: blinkRed 1s ease-in-out infinite;
+}
+
+@keyframes blinkRed {
+    0%, 100% {
+        background: white;
+    }
+    50% {
+        background: #ff4444;
+    }
 }
 
 header h1 {
@@ -436,26 +450,47 @@ color: white;
 
 /* Reset Location Button */
 .reset-location-btn {
-    position: fixed;
+    position: absolute;
     top: 60px;
     right: 10px;
-    padding: 8px 16px;
+    padding: 10px 20px;
     background: rgba(255, 255, 255, 0.95);
-    color: #333;
-    border: 2px solid #667eea;
-    font-size: 0.85rem;
-    font-weight: 600;
+    border: 2px solid #333;
+    border-radius: 8px;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    z-index: 90;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
+    z-index: 1000;
 }
 
 .reset-location-btn:hover {
     background: #667eea;
     color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Timer warning state */
+#timerValue.warning {
+    animation: blinkTextInverse 1s ease-in-out infinite;
+}
+
+@keyframes blinkTextInverse {
+    0%, 100% {
+        color: #ff4444;
+    }
+    50% {
+        color: white;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
 }
 
 /* Modals */
