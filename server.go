@@ -23,24 +23,76 @@ type Config struct {
 	APIKeys []map[string]string `yaml:"api_keys"`
 }
 
+type LogLevel int
+
+const (
+	DEBUG LogLevel = iota
+	INFO
+	WARN
+	ERROR
+)
+
 var (
 	apiKeys      []APIKey
 	keyIndex     uint32
 	httpClient   *http.Client
 	staticServer http.Handler
 	keyMutex     sync.RWMutex
+	logLevel     LogLevel = INFO
 )
 
+func logDebug(format string, v ...interface{}) {
+	if logLevel <= DEBUG {
+		log.Printf("[DEBUG] "+format, v...)
+	}
+}
+
+func logInfo(format string, v ...interface{}) {
+	if logLevel <= INFO {
+		log.Printf("[INFO] "+format, v...)
+	}
+}
+
+func logWarn(format string, v ...interface{}) {
+	if logLevel <= WARN {
+		log.Printf("[WARN] "+format, v...)
+	}
+}
+
+func logError(format string, v ...interface{}) {
+	if logLevel <= ERROR {
+		log.Printf("[ERROR] "+format, v...)
+	}
+}
+
 func init() {
+	// Parse log level from environment
+	logLevelStr := strings.ToUpper(os.Getenv("LOG_LEVEL"))
+	switch logLevelStr {
+	case "DEBUG":
+		logLevel = DEBUG
+	case "INFO", "":
+		logLevel = INFO
+	case "WARN", "WARNING":
+		logLevel = WARN
+	case "ERROR":
+		logLevel = ERROR
+	default:
+		logLevel = INFO
+		logWarn("Unknown LOG_LEVEL '%s', defaulting to INFO", logLevelStr)
+	}
+	
+	logInfo("Log level set to: %s", []string{"DEBUG", "INFO", "WARN", "ERROR"}[logLevel])
+	
 	// Load API keys from YAML file
 	if err := loadAPIKeys(); err != nil {
-		log.Printf("⚠️  WARNING: Failed to load api_keys.yaml: %v\n", err)
-		log.Println("⚠️  Falling back to environment variable...")
+		logWarn("Failed to load api_keys.yaml: %v", err)
+		logWarn("Falling back to environment variable...")
 		
 		// Fallback to environment variable
 		keysEnv := os.Getenv("MAPY_API_KEYS")
 		if keysEnv == "" {
-			log.Println("⚠️  WARNING: No API keys found. Set MAPY_API_KEYS or create api_keys.yaml")
+			logWarn("No API keys found. Set MAPY_API_KEYS or create api_keys.yaml")
 			apiKeys = []APIKey{{ID: "default", Value: "YOUR_API_KEY"}}
 		} else {
 			for i, key := range strings.Split(keysEnv, ",") {
@@ -49,10 +101,10 @@ func init() {
 					Value: strings.TrimSpace(key),
 				})
 			}
-			log.Printf("🔑 Loaded %d API key(s) from environment\n", len(apiKeys))
+			logInfo("🔑 Loaded %d API key(s) from environment", len(apiKeys))
 		}
 	} else {
-		log.Printf("🔑 Loaded %d API key(s) from api_keys.yaml\n", len(apiKeys))
+		logInfo("🔑 Loaded %d API key(s) from api_keys.yaml", len(apiKeys))
 	}
 
 	// Create HTTP client with connection pooling and no SSL verification
@@ -179,9 +231,9 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		// Make request to Mapy.cz
 		resp, err := httpClient.Do(proxyReq)
 		if err != nil {
-			log.Printf("❌ [%s] Network error: %v\n", apiKey.ID, err)
+			logError("❌ [%s] Network error: %v", apiKey.ID, err)
 			if attempt < maxAttempts-1 {
-				log.Printf("🔄 Retrying with next API key...\n")
+				logInfo("🔄 Retrying with next API key...")
 				continue
 			}
 			http.Error(w, err.Error(), http.StatusBadGateway)
@@ -191,17 +243,19 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		
 		// Check for API key errors (401, 403)
 		if resp.StatusCode == 401 || resp.StatusCode == 403 {
-			log.Printf("❌ [%s] Invalid API key (HTTP %d)\n", apiKey.ID, resp.StatusCode)
+			logError("❌ [%s] Invalid API key (HTTP %d)", apiKey.ID, resp.StatusCode)
 			if attempt < maxAttempts-1 {
-				log.Printf("🔄 Retrying with next API key...\n")
+				logInfo("🔄 Retrying with next API key...")
 				continue
 			}
 			// Last attempt failed, return the error
 		}
 		
-		// Success! Copy response
-		if resp.StatusCode < 400 {
-			log.Printf("✅ [%s] Request successful (HTTP %d)\n", apiKey.ID, resp.StatusCode)
+		// Success! Log at DEBUG level for 200s
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			logDebug("✅ [%s] Request successful (HTTP %d) - %s", apiKey.ID, resp.StatusCode, apiPath)
+		} else if resp.StatusCode >= 400 {
+			logWarn("⚠️  [%s] Request returned error (HTTP %d) - %s", apiKey.ID, resp.StatusCode, apiPath)
 		}
 		
 		// Copy response headers
@@ -225,7 +279,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// All attempts failed
-	log.Printf("❌ All %d API keys failed\n", maxAttempts)
+	logError("❌ All %d API keys failed", maxAttempts)
 	http.Error(w, "All API keys failed", http.StatusUnauthorized)
 }
 
@@ -259,10 +313,11 @@ func main() {
 	http.HandleFunc("/", mainHandler)
 	
 	addr := fmt.Sprintf(":%s", port)
-	log.Printf("🚀 Server running on http://localhost%s\n", addr)
-	log.Printf("📊 Connection pool: 100 max idle connections\n")
+	logInfo("🚀 Server running on http://localhost%s", addr)
+	logInfo("📊 Connection pool: 100 max idle connections")
 	
 	if err := http.ListenAndServe(addr, nil); err != nil {
-		log.Fatal(err)
+		logError("Failed to start server: %v", err)
+		os.Exit(1)
 	}
 }

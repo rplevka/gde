@@ -60,6 +60,12 @@ docker run -p 8000:8000 \
   -v $(pwd)/api_keys.yaml:/app/api_keys.yaml \
   gde-game
 
+# With custom log level (DEBUG, INFO, WARN, ERROR)
+docker run -p 8000:8000 \
+  -v $(pwd)/api_keys.yaml:/app/api_keys.yaml \
+  -e LOG_LEVEL=DEBUG \
+  gde-game
+
 # Alternative: Use environment variable (fallback method)
 docker run -p 8000:8000 \
   -e MAPY_API_KEYS="your-key-1,your-key-2" \
@@ -81,8 +87,17 @@ This uses a high-performance Go proxy server with automatic retry logic.
 go mod download
 go run server.go
 
+# With custom log level
+LOG_LEVEL=DEBUG go run server.go
+
 # Then open http://localhost:8000
 ```
+
+**Log Levels:**
+- `DEBUG` - Shows all requests including successful 200 responses
+- `INFO` - Shows startup info, key loading, retries (default)
+- `WARN` - Shows warnings and errors only
+- `ERROR` - Shows errors only
 
 The server will automatically load keys from `api_keys.yaml` and log which key is being used for each request.
 

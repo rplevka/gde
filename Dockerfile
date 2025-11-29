@@ -33,6 +33,7 @@ EXPOSE 8000
 # Set API keys via environment variable (override at runtime)
 ENV MAPY_API_KEYS=""
 ENV PORT=8000
+ENV LOG_LEVEL=INFO
 
 # Run the Go server
 CMD ["/app/server"]
