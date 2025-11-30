@@ -118,6 +118,7 @@ let gameState = {
     drawnPath: [],
     panoramaCache: [], // Cache found panorama locations to reduce API calls
     roundSubmitted: false, // Track if current round has been submitted
+    isMultiplayer: false, // Multiplayer mode flag
     preferences: {
         mapLayers: true,
         showRegion: true,
@@ -328,13 +329,22 @@ function setupStartScreen() {
     
     // Start game button
     document.getElementById('startGameBtn').addEventListener('click', () => {
-        if (gameState.customRegion) {
-            gameState.selectedRegion = 'custom';
+        // Check if multiplayer mode
+        if (typeof multiplayerState !== 'undefined' && multiplayerState.isMultiplayer) {
+            // In multiplayer, only owner can start
+            if (multiplayerState.isOwner) {
+                sendWS('startGame', {});
+            }
         } else {
-            gameState.selectedRegion = selectedRegion;
+            // Single player mode
+            if (gameState.customRegion) {
+                gameState.selectedRegion = 'custom';
+            } else {
+                gameState.selectedRegion = selectedRegion;
+            }
+            gameState.selectedMode = selectedMode;
+            startGame();
         }
-        gameState.selectedMode = selectedMode;
-        startGame();
     });
 }
 
@@ -382,9 +392,14 @@ function setupEventListeners() {
         document.getElementById('resultModal').style.display = 'none';
         document.getElementById('restoreResult').style.display = 'none';
         
-        // Start next round
-        gameState.currentRound++;
-        startNewRound();
+        // In multiplayer, notify server to start next round for everyone
+        if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
+            sendWS('nextRound', {});
+        } else {
+            // Single player - start next round directly
+            gameState.currentRound++;
+            startNewRound();
+        }
     });
 
     // Minimize result modal
@@ -715,6 +730,12 @@ async function startNewRound() {
     // Reset round state
     gameState.roundSubmitted = false;
     
+    // Clear shared location for new round in multiplayer
+    if (gameState.isMultiplayer && typeof multiplayerState !== 'undefined') {
+        multiplayerState.sharedLocation = null;
+        multiplayerState.waitingForLocation = false;
+    }
+    
     // Stop any existing timer
     stopTimer();
     
@@ -751,11 +772,29 @@ async function startNewRound() {
     }
 
     // Find a random location with panorama
-    const location = await findRandomLocationWithPanorama();
+    let location;
     
-    if (!location) {
-        showPanoramaErrorModal();
-        return;
+    // In multiplayer, wait for server to provide location
+    if (gameState.isMultiplayer && typeof getSharedLocation !== 'undefined') {
+        console.log('Multiplayer mode: requesting location from server...');
+        
+        // Request location from server (will wait for response)
+        location = await getSharedLocation();
+        
+        if (!location) {
+            console.error('Failed to get location from server');
+            showPanoramaErrorModal();
+            return;
+        }
+        
+        console.log('Received location from server:', location);
+    } else {
+        // Single player - just find a location
+        location = await findRandomLocationWithPanorama();
+        if (!location) {
+            showPanoramaErrorModal();
+            return;
+        }
     }
 
     gameState.currentLocation = location;
@@ -775,7 +814,18 @@ async function startNewRound() {
     if (!loaded) {
         // If panorama failed to load, try finding another location
         console.log('Panorama failed to load, trying another location...');
-        await startNewRound();
+        
+        // In multiplayer, notify server that location failed so everyone retries together
+        if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
+            sendWS('locationFailed', {
+                lat: location.lat,
+                lon: location.lon
+            });
+            // Server will broadcast retry to all players
+        } else {
+            // Single player - retry directly
+            await startNewRound();
+        }
     } else {
         // Start timer after panorama loads successfully
         startTimer();
@@ -1122,23 +1172,28 @@ function showRoundResult(result) {
     // Show modal first
     document.getElementById('resultModal').style.display = 'flex';
     
-    // Show Next Round button if not the last round
+    // Show Next Round button if not the last round (but not in multiplayer)
     const nextRoundBtn = document.getElementById('nextRound');
     const minimizeBtn = document.getElementById('minimizeResult');
     
     if (gameState.currentRound < CONFIG.TOTAL_ROUNDS) {
-        nextRoundBtn.style.display = 'inline-block';
+        // In multiplayer, never show Next Round button (server controls rounds)
+        if (gameState.isMultiplayer) {
+            nextRoundBtn.style.display = 'none';
+        } else {
+            nextRoundBtn.style.display = 'inline-block';
+            nextRoundBtn.textContent = 'Next Round';
+        }
         minimizeBtn.style.display = 'inline-block';
     } else {
-        // Last round - hide minimize, clicking Next Round will show final score
-        nextRoundBtn.style.display = 'none';
+        // Last round - show button to view final score
+        if (gameState.isMultiplayer) {
+            nextRoundBtn.style.display = 'none';
+        } else {
+            nextRoundBtn.style.display = 'inline-block';
+            nextRoundBtn.textContent = 'View Final Score';
+        }
         minimizeBtn.style.display = 'none';
-        
-        // Auto-show final score after a delay
-        setTimeout(() => {
-            document.getElementById('resultModal').style.display = 'none';
-            showFinalScore();
-        }, 5000);
     }
     
     // Wait for modal to be visible, then fix map size and fit bounds

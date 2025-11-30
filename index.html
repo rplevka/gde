@@ -8,6 +8,9 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    
     <!-- Panorama API Proxy (must load before Panorama library) -->
     <script src="panorama-proxy.js"></script>
     
@@ -16,14 +19,36 @@
     
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="app">
-        <!-- Start Screen -->
-        <div id="startScreen">
+        <!-- Mode Selection Screen -->
+        <div id="modeSelectionScreen">
             <div class="start-container">
+                <h1>GDE SU?!</h1>
+                <p class="subtitle">Geo Guessing Game</p>
+                
+                <div class="start-section">
+                    <h2>Select Play Mode</h2>
+                    <div class="mode-grid">
+                        <button class="play-mode-btn" id="singlePlayerBtn">
+                            <span class="mode-icon">👤</span>
+                            <span class="mode-name">Single Player</span>
+                            <span class="mode-desc">Play alone at your own pace</span>
+                        </button>
+                        <button class="play-mode-btn" id="multiPlayerBtn">
+                            <span class="mode-icon">👥</span>
+                            <span class="mode-name">Multiplayer</span>
+                            <span class="mode-desc">Compete with friends online</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="startScreen" style="display: none;">
+            <div class="start-container" style="position: relative;">
                 <h1>GDE SU?!</h1>
                 <p class="subtitle">Geo Guessing Game</p>
                 
@@ -143,6 +168,9 @@
                     <p><strong>Score:</strong> <span id="resultScore"></span></p>
                 </div>
                 <div id="resultMap"></div>
+                <div id="multiplayerCountdown" style="display: none; text-align: center; margin-top: 15px; font-size: 16px; color: #667eea; font-weight: 600;">
+                    Next round starts in <span id="countdownTimer">5</span> seconds...
+                </div>
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
                     <button id="minimizeResult" class="btn btn-secondary">Minimize</button>
                     <button id="nextRound" class="btn btn-primary" style="display: none;">Next Round</button>
@@ -154,6 +182,19 @@
         <button id="restoreResult" class="restore-btn" style="display: none;">
             📊 Show Results
         </button>
+
+        <!-- Multiplayer Winner Modal -->
+        <div id="winnerModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>🏆 Game Finished!</h2>
+                <div id="winnerAnnouncement" style="text-align: center; margin: 20px 0; font-size: 24px; font-weight: bold; color: #667eea;">
+                </div>
+                <div id="finalScoreboard"></div>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                    <button id="backToMenuBtn" class="btn btn-primary">Back to Menu</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Game Settings Modal -->
         <div id="difficultyModal" class="modal" style="display: none;">
@@ -296,8 +337,76 @@
                 </div>
             </div>
         </div>
+
+        <!-- Multiplayer Join/Create Modal -->
+        <div id="multiplayerModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>👥 Multiplayer</h2>
+                <p class="modal-subtitle">Join or create a game session</p>
+                
+                <div class="mp-profile">
+                    <h3>Your Profile</h3>
+                    <div class="profile-inputs">
+                        <input type="text" id="playerNick" placeholder="Enter your nickname" maxlength="20" value="Player">
+                        <div class="icon-selector">
+                            <button class="icon-btn selected" data-icon="😀">😀</button>
+                            <button class="icon-btn" data-icon="😎">😎</button>
+                            <button class="icon-btn" data-icon="🤓">🤓</button>
+                            <button class="icon-btn" data-icon="😈">😈</button>
+                            <button class="icon-btn" data-icon="🤠">🤠</button>
+                            <button class="icon-btn" data-icon="🥳">🥳</button>
+                            <button class="icon-btn" data-icon="🤖">🤖</button>
+                            <button class="icon-btn" data-icon="👽">👽</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mp-actions">
+                    <div class="mp-section">
+                        <h3>Create New Session</h3>
+                        <button id="createSessionBtn" class="btn btn-success">Create Session</button>
+                    </div>
+                    
+                    <div class="mp-divider">OR</div>
+                    
+                    <div class="mp-section">
+                        <h3>Join Existing Session</h3>
+                        <input type="text" id="sessionCodeInput" placeholder="Enter session code (e.g. abc123)" maxlength="6">
+                        <button id="joinSessionBtn" class="btn btn-primary">Join Session</button>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: center; margin-top: 20px;">
+                    <button id="cancelMultiplayer" class="btn btn-secondary">Back</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multiplayer Lobby (shown on start screen when in multiplayer) -->
+        <div id="lobbyPanel" style="display: none;">
+            <div class="lobby-container">
+                <div class="lobby-header">
+                    <h3>🎮 Lobby</h3>
+                    <div class="session-code">
+                        <span>Session Code:</span>
+                        <strong id="lobbySessionCode">------</strong>
+                        <button id="copySessionCode" class="icon-btn" title="Copy">📋</button>
+                    </div>
+                </div>
+                
+                <div class="lobby-players" id="lobbyPlayersList">
+                    <!-- Players will be added dynamically -->
+                </div>
+                
+                <div class="lobby-footer">
+                    <button id="toggleReadyBtn" class="btn btn-primary">Ready</button>
+                    <button id="leaveLobbyBtn" class="btn btn-secondary">Leave</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
+    <script src="multiplayer.js"></script>
 </body>
 </html>

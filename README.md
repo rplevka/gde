@@ -4,15 +4,30 @@ A geo-guessing game powered by Mapy.cz panoramas. Explore Czech Republic through
 
 ## Features
 
+### Single Player
 - 🎮 **Two Game Modes**: Explorer (movable) and Static (fixed view)
 - 🗺️ **Multiple Regions**: Czech Republic, Prague, Brno, Moravia, Bohemia
 - ✏️ **Custom Regions**: Draw your own play areas on the map
 - 📍 **Interactive Minimap**: Expandable map overlay for making guesses
 - 🗾 **Region Boundaries**: Visual polygon overlays showing exact play area
 - ⚙️ **Difficulty Preferences**: Customize game difficulty with toggles
-- 🔑 **API Key Pool**: Support for multiple API keys with automatic rotation
+- ⏱️ **Time Trial Mode**: Optional countdown timer per round
 - 🎯 **Scoring System**: Distance-based scoring (max 5000 points per round)
 - 📊 **Round Breakdown**: Detailed results with visual comparison
+
+### Multiplayer
+- 👥 **Real-time Multiplayer**: Play with friends via WebSocket connections
+- 🎮 **Session System**: Create or join game sessions with unique codes
+- 🏆 **Competitive Gameplay**: First player to submit triggers 60-second timer
+- 👑 **Host Controls**: Session owner manages settings and can kick players
+- ✅ **Ready System**: All players must be ready before game starts
+- 🎨 **Player Profiles**: Choose nickname and emoji icon
+- 📊 **Live Lobby**: See all players and their ready status in real-time
+
+### Technical
+- 🔑 **API Key Pool**: Support for multiple API keys with automatic rotation
+- 🔄 **WebSocket Server**: Real-time communication for multiplayer
+- 🐳 **Docker Support**: Easy deployment with containerization
 
 ## Setup
 
@@ -83,12 +98,14 @@ This uses a high-performance Go proxy server with automatic retry logic.
 
 # Make sure api_keys.yaml is configured (see step 2)
 
-# Download dependencies and run
+# Download dependencies (including WebSocket support)
 go mod download
-go run server.go
+
+# Run both server files (includes multiplayer support)
+go run server.go multiplayer.go
 
 # With custom log level
-LOG_LEVEL=DEBUG go run server.go
+LOG_LEVEL=DEBUG go run server.go multiplayer.go
 
 # Then open http://localhost:8000
 ```

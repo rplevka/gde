@@ -5,13 +5,15 @@ WORKDIR /build
 
 # Copy go files
 COPY go.mod ./
+COPY go.sum ./
 COPY server.go ./
+COPY multiplayer.go ./
 
-# Generate go.sum and download dependencies
-RUN go mod tidy && go mod download
+# Download dependencies
+RUN go mod download
 
-# Build the Go binary
-RUN go build -o server server.go
+# Build the Go binary (include both server.go and multiplayer.go)
+RUN go build -o server server.go multiplayer.go
 
 # Runtime stage
 FROM alpine:latest
@@ -22,7 +24,7 @@ WORKDIR /app
 COPY --from=builder /build/server /app/server
 
 # Copy static files
-COPY index.html styles.css app.js panorama-proxy.js regions-boundaries.json ./
+COPY index.html styles.css app.js multiplayer.js panorama-proxy.js regions-boundaries.json ./
 
 # Copy API keys file if it exists (optional, can be mounted as volume or use env vars)
 COPY api_keys.example.yaml ./

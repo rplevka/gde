@@ -294,6 +294,12 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// WebSocket endpoint
+	if r.URL.Path == "/ws" {
+		handleWebSocket(w, r)
+		return
+	}
+	
 	// Proxy API requests
 	if strings.HasPrefix(r.URL.Path, "/api/mapy/") {
 		proxyHandler(w, r)
