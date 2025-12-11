@@ -628,7 +628,7 @@ function showMultiplayerResults(players) {
     if (!resultMap) return;
     
     // Get actual location
-    const actualLocation = gameState.currentLocation;
+    const actualLocation = getCurrentPanoramaPosition();
     if (!actualLocation) return;
     
     // Array to store all bounds for fitting
@@ -890,7 +890,7 @@ window.submitGuess = function() {
         // Calculate score before sending
         const targetLocation = (gameState.preferences.targetOriginal || gameState.selectedMode !== 'explorer')
             ? gameState.originalLocation
-            : gameState.currentLocation;
+            : getCurrentPanoramaPosition();
         
         const distance = calculateDistance(
             targetLocation.lat,

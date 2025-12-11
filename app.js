@@ -133,6 +133,16 @@ let gameState = {
     timeRemaining: 0 // Seconds remaining in current round
 };
 
+// Get current panorama position (uses stored position from pano-place events)
+function getCurrentPanoramaPosition() {
+    // Use position tracked by pano-place listener if available
+    if (gameState.currentPanoramaPosition) {
+        return gameState.currentPanoramaPosition;
+    }
+    // Fallback to original location
+    return gameState.originalLocation;
+}
+
 // Initialize the game when page loads
 document.addEventListener('DOMContentLoaded', async () => {
     await loadRegionBoundaries();
@@ -634,7 +644,7 @@ function handleTimeOut() {
         round: gameState.currentRound,
         score: 0,
         distance: null,
-        actualLocation: gameState.preferences.targetOriginal ? gameState.originalLocation : gameState.currentLocation,
+        actualLocation: gameState.preferences.targetOriginal ? gameState.originalLocation : getCurrentPanoramaPosition(),
         guessLocation: null, // No guess was made
         timeOut: true
     });
@@ -659,7 +669,7 @@ function showTimeOutResult() {
     document.getElementById('resultScore').textContent = '0 points';
     
     // Get actual location
-    const actualLocation = gameState.preferences.targetOriginal ? gameState.originalLocation : gameState.currentLocation;
+    const actualLocation = gameState.preferences.targetOriginal ? gameState.originalLocation : getCurrentPanoramaPosition();
     
     // Create result map
     const resultMapContainer = document.getElementById('resultMap');
@@ -799,6 +809,7 @@ async function startNewRound() {
 
     gameState.currentLocation = location;
     gameState.originalLocation = { lat: location.lat, lon: location.lon }; // Store original location
+    gameState.currentPanoramaPosition = { lat: location.lat, lon: location.lon }; // Initialize current position
     
     // Show/hide reset button based on mode
     const resetBtn = document.getElementById('resetLocationBtn');
@@ -972,12 +983,16 @@ async function loadPanorama(lat, lon) {
             });
         }
 
-        // Update actual location if panorama position differs
-        if (panoData.info) {
-            gameState.currentLocation.lat = panoData.info.lat;
-            gameState.currentLocation.lon = panoData.info.lon;
+        // Listen for position changes in explorer mode (when user navigates to a new panorama)
+        if (showNavigation) {
+            panoData.addListener('pano-place', (data) => {
+                // Store current position for scoring - coordinates are in data.info
+                if (data && data.info && data.info.lat !== undefined && data.info.lon !== undefined) {
+                    gameState.currentPanoramaPosition = { lat: data.info.lat, lon: data.info.lon };
+                }
+            });
         }
-        
+
         return true;
 
     } catch (error) {
@@ -1036,7 +1051,7 @@ function submitGuess() {
     // Otherwise use current panorama position
     const targetLocation = (gameState.preferences.targetOriginal || gameState.selectedMode !== 'explorer')
         ? gameState.originalLocation
-        : gameState.currentLocation;
+        : getCurrentPanoramaPosition();
     
     // Calculate distance
     const distance = calculateDistance(
