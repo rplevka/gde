@@ -126,7 +126,8 @@ let gameState = {
         zoom: true,
         targetOriginal: true, // Score based on original location (true) or current position (false)
         timeTrial: false, // Enable time trial mode
-        timeLimit: 120 // Time limit per round in seconds
+        timeLimit: 120, // Time limit per round in seconds
+        infiniteMode: false // Infinite mode - play until user decides to end
     },
     originalLocation: null, // Store the original start location for explorer mode
     timer: null, // Timer interval
@@ -287,6 +288,10 @@ function setupDifficultyPreferences() {
     document.getElementById('pref-timeLimit').addEventListener('change', (e) => {
         gameState.preferences.timeLimit = parseInt(e.target.value);
     });
+    
+    document.getElementById('pref-infiniteMode').addEventListener('change', (e) => {
+        gameState.preferences.infiniteMode = e.target.checked;
+    });
 }
 
 function setupStartScreen() {
@@ -402,8 +407,8 @@ function setupEventListeners() {
         document.getElementById('resultModal').style.display = 'none';
         document.getElementById('restoreResult').style.display = 'none';
         
-        // Check if game is complete
-        if (gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
+        // Check if game is complete (not in infinite mode)
+        if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
             // Game is complete - show final score
             showFinalScore();
         } else if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
@@ -467,6 +472,13 @@ function setupEventListeners() {
 
     // Toggle map size button
     document.getElementById('toggleMapSize').addEventListener('click', toggleMapSize);
+    
+    // Finish game button (for infinite mode)
+    document.getElementById('finishGame').addEventListener('click', () => {
+        if (confirm('End the game and view your final score?')) {
+            showFinalScore();
+        }
+    });
 }
 
 function toggleMapSize() {
@@ -769,6 +781,12 @@ async function startNewRound() {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submit';
     document.getElementById('nextRound').style.display = 'none';
+    
+    // Show/hide finish game button based on infinite mode
+    const finishGameBtn = document.getElementById('finishGame');
+    if (finishGameBtn) {
+        finishGameBtn.style.display = gameState.preferences.infiniteMode ? 'inline-block' : 'none';
+    }
 
     // Reset map view to region bounds
     const region = gameState.selectedRegion === 'custom' && gameState.customRegion 
@@ -1204,7 +1222,16 @@ function showRoundResult(result) {
     const nextRoundBtn = document.getElementById('nextRound');
     const minimizeBtn = document.getElementById('minimizeResult');
     
-    if (gameState.currentRound < CONFIG.TOTAL_ROUNDS) {
+    // In infinite mode, always show next round button and minimize
+    if (gameState.preferences.infiniteMode) {
+        if (gameState.isMultiplayer) {
+            nextRoundBtn.style.display = 'none';
+        } else {
+            nextRoundBtn.style.display = 'inline-block';
+            nextRoundBtn.textContent = 'Next Round';
+        }
+        minimizeBtn.style.display = 'inline-block';
+    } else if (gameState.currentRound < CONFIG.TOTAL_ROUNDS) {
         // In multiplayer, never show Next Round button (server controls rounds)
         if (gameState.isMultiplayer) {
             nextRoundBtn.style.display = 'none';
@@ -1296,7 +1323,23 @@ function resetGame() {
 
 function updateScoreDisplay() {
     document.getElementById('currentRound').textContent = gameState.currentRound;
-    document.getElementById('totalRounds').textContent = CONFIG.TOTAL_ROUNDS;
+    const totalRoundsElement = document.getElementById('totalRounds');
+    const roundSeparator = totalRoundsElement.previousSibling; // The "/" text node
+    
+    if (gameState.preferences.infiniteMode) {
+        // Hide the slash and total rounds in infinite mode
+        totalRoundsElement.style.display = 'none';
+        if (roundSeparator && roundSeparator.nodeType === Node.TEXT_NODE) {
+            roundSeparator.textContent = '';
+        }
+    } else {
+        totalRoundsElement.style.display = 'inline';
+        if (roundSeparator && roundSeparator.nodeType === Node.TEXT_NODE) {
+            roundSeparator.textContent = '/';
+        }
+        totalRoundsElement.textContent = CONFIG.TOTAL_ROUNDS;
+    }
+    
     document.getElementById('totalScore').textContent = gameState.totalScore;
 }
 

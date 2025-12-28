@@ -121,6 +121,7 @@
                     <span class="label">Total Score:</span>
                     <span id="totalScore">0</span>
                 </div>
+                <button id="finishGame" class="btn btn-secondary" style="display: none; margin-left: 15px;">🏁 Finish Game</button>
             </div>
         </header>
 
@@ -275,6 +276,17 @@
                             <p>How long for each round</p>
                         </div>
                         <input type="number" id="pref-timeLimit" min="10" max="600" value="120" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
+                    </div>
+                    
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <strong>♾️ Infinite Mode</strong>
+                            <p>Play unlimited rounds until you decide to finish</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="pref-infiniteMode">
+                            <span class="slider"></span>
+                        </label>
                     </div>
                 </div>
                 
