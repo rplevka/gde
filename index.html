@@ -310,9 +310,18 @@
                     </button>
                 </div>
                 <div id="drawMapContainer"></div>
+                <div class="draw-save-section" style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; display: none;" id="drawSaveSection">
+                    <label for="customRegionName" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">💾 Save this region (optional):</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="customRegionName" placeholder="Enter region name (e.g., My Hometown)" maxlength="30" style="flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <span style="color: #666; font-size: 12px;" id="regionSlotCount">0/5 slots used</span>
+                    </div>
+                    <p style="margin-top: 8px; font-size: 12px; color: #666;">Save up to 5 custom regions to reuse later</p>
+                </div>
                 <div class="draw-controls">
                     <button id="clearDrawing" class="btn btn-secondary">Clear Drawing</button>
-                    <button id="confirmDrawing" class="btn btn-primary" disabled>Confirm Region</button>
+                    <button id="saveDrawing" class="btn btn-success" disabled style="display: none;">💾 Save Region</button>
+                    <button id="confirmDrawing" class="btn btn-primary" disabled>Use Region</button>
                     <button id="cancelDrawing" class="btn btn-secondary">Cancel</button>
                 </div>
             </div>

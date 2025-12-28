@@ -85,6 +85,7 @@ body.game-active {
     flex-direction: column;
     align-items: center;
     gap: 10px;
+    position: relative;
 }
 
 .region-btn:hover {
@@ -97,6 +98,38 @@ body.game-active {
     border-color: #667eea;
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+/* Delete button for saved custom regions */
+.delete-region-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+    padding: 0;
+    font-weight: bold;
+}
+
+.region-btn:hover .delete-region-btn {
+    opacity: 1;
+}
+
+.delete-region-btn:hover {
+    background: #cc0000;
+    transform: scale(1.1);
 }
 
 .region-icon {

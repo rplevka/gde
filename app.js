@@ -189,6 +189,56 @@ function loadGameSelectionFromLocalStorage() {
     }
 }
 
+// Custom regions management (max 5 saved regions)
+const MAX_SAVED_REGIONS = 5;
+
+function getSavedCustomRegions() {
+    try {
+        const saved = localStorage.getItem('gde_customRegions');
+        return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+        console.warn('Failed to load custom regions from localStorage:', error);
+        return [];
+    }
+}
+
+function saveCustomRegion(name, region) {
+    try {
+        const regions = getSavedCustomRegions();
+        
+        // Check if name already exists
+        const existingIndex = regions.findIndex(r => r.name === name);
+        if (existingIndex !== -1) {
+            regions[existingIndex] = { name, region };
+        } else {
+            // Check limit
+            if (regions.length >= MAX_SAVED_REGIONS) {
+                alert(`You can only save up to ${MAX_SAVED_REGIONS} custom regions. Please delete one first.`);
+                return false;
+            }
+            regions.push({ name, region });
+        }
+        
+        localStorage.setItem('gde_customRegions', JSON.stringify(regions));
+        return true;
+    } catch (error) {
+        console.warn('Failed to save custom region to localStorage:', error);
+        return false;
+    }
+}
+
+function deleteCustomRegion(name) {
+    try {
+        const regions = getSavedCustomRegions();
+        const filtered = regions.filter(r => r.name !== name);
+        localStorage.setItem('gde_customRegions', JSON.stringify(filtered));
+        return true;
+    } catch (error) {
+        console.warn('Failed to delete custom region from localStorage:', error);
+        return false;
+    }
+}
+
 // Initialize the game when page loads
 document.addEventListener('DOMContentLoaded', async () => {
     // Load saved preferences first
@@ -369,12 +419,37 @@ function setupStartScreen() {
     let selectedRegion = savedSelection.region;
     let selectedMode = savedSelection.mode;
     
+    // Display saved custom regions first
+    displaySavedCustomRegions();
+    
     // Preselect saved region (or default to Czech Republic)
-    const regionBtn = document.querySelector(`.region-btn[data-region="${selectedRegion}"]`);
-    if (regionBtn) {
-        regionBtn.classList.add('selected');
+    let regionBtn = null;
+    
+    // Check if it's a saved custom region (format: 'custom_RegionName')
+    if (selectedRegion.startsWith('custom_')) {
+        const customRegionName = selectedRegion.substring(7); // Remove 'custom_' prefix
+        regionBtn = document.querySelector(`.saved-custom-region-btn[data-custom-region="${customRegionName}"]`);
+        
+        if (regionBtn) {
+            regionBtn.classList.add('selected');
+            // Load the custom region data
+            const savedRegions = getSavedCustomRegions();
+            const savedRegion = savedRegions.find(r => r.name === customRegionName);
+            if (savedRegion) {
+                gameState.customRegion = savedRegion.region;
+                gameState.selectedRegion = 'custom';
+            }
+        }
     } else {
-        // Fallback to czechia if saved region not found
+        // Standard region
+        regionBtn = document.querySelector(`.region-btn[data-region="${selectedRegion}"]`);
+        if (regionBtn) {
+            regionBtn.classList.add('selected');
+        }
+    }
+    
+    // Fallback to czechia if saved region not found
+    if (!regionBtn) {
         const czechiaBtn = document.querySelector('.region-btn[data-region="czechia"]');
         if (czechiaBtn) czechiaBtn.classList.add('selected');
         selectedRegion = 'czechia';
@@ -1476,14 +1551,36 @@ function returnToStartScreen() {
     
     // Restore saved selections
     const savedSelection = loadGameSelectionFromLocalStorage();
-    const regionBtn = document.querySelector(`.region-btn[data-region="${savedSelection.region}"]`);
-    if (regionBtn) {
-        regionBtn.classList.add('selected');
+    
+    // Restore region selection
+    let regionBtn = null;
+    if (savedSelection.region.startsWith('custom_')) {
+        const customRegionName = savedSelection.region.substring(7);
+        regionBtn = document.querySelector(`.saved-custom-region-btn[data-custom-region="${customRegionName}"]`);
+        
+        if (regionBtn) {
+            regionBtn.classList.add('selected');
+            // Load the custom region data
+            const savedRegions = getSavedCustomRegions();
+            const savedRegion = savedRegions.find(r => r.name === customRegionName);
+            if (savedRegion) {
+                gameState.customRegion = savedRegion.region;
+            }
+        }
     } else {
+        regionBtn = document.querySelector(`.region-btn[data-region="${savedSelection.region}"]`);
+        if (regionBtn) {
+            regionBtn.classList.add('selected');
+        }
+    }
+    
+    // Fallback to czechia if saved region not found
+    if (!regionBtn) {
         const czechiaBtn = document.querySelector('.region-btn[data-region="czechia"]');
         if (czechiaBtn) czechiaBtn.classList.add('selected');
     }
     
+    // Restore mode selection
     const modeBtn = document.querySelector(`.mode-btn[data-mode="${savedSelection.mode}"]`);
     if (modeBtn) {
         modeBtn.classList.add('selected');
@@ -1499,6 +1596,71 @@ function returnToStartScreen() {
 function showError(message) {
     console.error(message);
     alert(message);
+}
+
+// Display saved custom regions on start screen
+function displaySavedCustomRegions() {
+    const savedRegions = getSavedCustomRegions();
+    const regionGrid = document.querySelector('.region-grid');
+    
+    // Remove any previously added custom region buttons
+    document.querySelectorAll('.saved-custom-region-btn').forEach(btn => btn.remove());
+    
+    // Add buttons for each saved region (before the "Draw Region" button)
+    const drawRegionBtn = document.getElementById('drawRegionBtn');
+    
+    savedRegions.forEach(({ name, region }) => {
+        const btn = document.createElement('button');
+        btn.className = 'region-btn saved-custom-region-btn';
+        btn.dataset.customRegion = name;
+        btn.innerHTML = `
+            <span class="region-icon">📍</span>
+            <span class="region-name">${name}</span>
+            <button class="delete-region-btn" title="Delete this region">×</button>
+        `;
+        
+        // Insert before draw region button
+        regionGrid.insertBefore(btn, drawRegionBtn);
+        
+        // Handle selection
+        btn.addEventListener('click', (e) => {
+            // Don't trigger if clicking delete button
+            if (e.target.classList.contains('delete-region-btn')) {
+                return;
+            }
+            
+            document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            
+            // Load this custom region
+            gameState.customRegion = region;
+            gameState.selectedRegion = 'custom';
+            
+            // Save selection
+            saveGameSelectionToLocalStorage('custom_' + name, gameState.selectedMode || 'static');
+            
+            // Enable start button
+            document.getElementById('startGameBtn').disabled = false;
+        });
+        
+        // Handle deletion
+        const deleteBtn = btn.querySelector('.delete-region-btn');
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            if (confirm(`Delete custom region "${name}"?`)) {
+                deleteCustomRegion(name);
+                displaySavedCustomRegions();
+                
+                // If this region was selected, clear selection
+                if (btn.classList.contains('selected')) {
+                    gameState.customRegion = null;
+                    gameState.selectedRegion = null;
+                    document.getElementById('startGameBtn').disabled = true;
+                }
+            }
+        });
+    });
 }
 
 // Draw Region Functionality
@@ -1627,6 +1789,15 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
             allPolylines.push(polygon);
             allPaths.push([...currentPath]);
             document.getElementById('confirmDrawing').disabled = false;
+            document.getElementById('saveDrawing').disabled = false;
+            
+            // Show save section and update slot count
+            const saveSection = document.getElementById('drawSaveSection');
+            saveSection.style.display = 'block';
+            document.getElementById('saveDrawing').style.display = 'inline-block';
+            
+            const savedRegions = getSavedCustomRegions();
+            document.getElementById('regionSlotCount').textContent = `${savedRegions.length}/${MAX_SAVED_REGIONS} slots used`;
             
             // Clear canvas for next drawing
             ctx.clearRect(0, 0, canvasOverlay.width, canvasOverlay.height);
@@ -1642,6 +1813,8 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
         allPolylines = [];
         allPaths = [];
         document.getElementById('confirmDrawing').disabled = true;
+        document.getElementById('saveDrawing').disabled = true;
+        document.getElementById('drawSaveSection').style.display = 'none';
     };
     
     // Confirm drawing button
@@ -1684,6 +1857,69 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
         }
     };
     
+    // Save drawing button
+    document.getElementById('saveDrawing').onclick = () => {
+        if (allPaths.length > 0) {
+            const regionName = document.getElementById('customRegionName').value.trim();
+            
+            if (!regionName) {
+                alert('Please enter a name for your custom region.');
+                return;
+            }
+            
+            // Validate name length
+            if (regionName.length > 30) {
+                alert('Region name must be 30 characters or less.');
+                return;
+            }
+            
+            // Calculate bounding box from all drawn paths
+            const allLats = allPaths.flat().map(p => p.lat);
+            const allLons = allPaths.flat().map(p => p.lng);
+            
+            // Convert paths from Leaflet LatLng objects to [lat, lon] arrays
+            const convertedPaths = allPaths.map(path => 
+                path.map(point => [point.lat, point.lng])
+            );
+            
+            const regionData = {
+                name: regionName,
+                bounds: {
+                    minLat: Math.min(...allLats),
+                    maxLat: Math.max(...allLats),
+                    minLon: Math.min(...allLons),
+                    maxLon: Math.max(...allLons)
+                },
+                paths: convertedPaths
+            };
+            
+            // Save to localStorage
+            const saved = saveCustomRegion(regionName, regionData);
+            
+            if (saved) {
+                // Set as current custom region
+                gameState.customRegion = regionData;
+                
+                // Close modal
+                modal.style.display = 'none';
+                gameState.drawMap.remove();
+                gameState.drawMap = null;
+                
+                // Refresh the saved regions display
+                displaySavedCustomRegions();
+                
+                // Auto-select the newly saved region
+                const savedBtn = document.querySelector(`.saved-custom-region-btn[data-custom-region="${regionName}"]`);
+                if (savedBtn) {
+                    savedBtn.click();
+                }
+                
+                // Clear the name input for next time
+                document.getElementById('customRegionName').value = '';
+            }
+        }
+    };
+    
     // Cancel button
     document.getElementById('cancelDrawing').onclick = () => {
         modal.style.display = 'none';
@@ -1691,11 +1927,18 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
             gameState.drawMap.remove();
             gameState.drawMap = null;
         }
+        // Clear the name input
+        document.getElementById('customRegionName').value = '';
+        document.getElementById('drawSaveSection').style.display = 'none';
     };
     
     // Fix map size after modal is visible
     setTimeout(() => {
         gameState.drawMap.invalidateSize();
+        
+        // Update slot count
+        const savedRegions = getSavedCustomRegions();
+        document.getElementById('regionSlotCount').textContent = `${savedRegions.length}/${MAX_SAVED_REGIONS} slots used`;
     }, 100);
 }
 
