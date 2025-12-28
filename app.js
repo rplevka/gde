@@ -435,6 +435,15 @@ function setupEventListeners() {
         returnToStartScreen();
     });
     
+    // Game title click - return to start screen
+    document.querySelector('.game-title').addEventListener('click', () => {
+        if (gameState.gameStarted) {
+            if (confirm('Return to menu? Your current game progress will be lost.')) {
+                returnToStartScreen();
+            }
+        }
+    });
+    
     // Reset location button (explorer mode)
     document.getElementById('resetLocationBtn').addEventListener('click', async () => {
         if (gameState.originalLocation) {

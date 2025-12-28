@@ -198,6 +198,13 @@ header h1 {
     color: #333;
     font-size: 1.1rem;
     font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+header h1:hover {
+    color: #667eea;
+    transform: scale(1.05);
 }
 
 .score-container {
