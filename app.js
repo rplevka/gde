@@ -402,8 +402,12 @@ function setupEventListeners() {
         document.getElementById('resultModal').style.display = 'none';
         document.getElementById('restoreResult').style.display = 'none';
         
-        // In multiplayer, notify server to start next round for everyone
-        if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
+        // Check if game is complete
+        if (gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
+            // Game is complete - show final score
+            showFinalScore();
+        } else if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
+            // In multiplayer, notify server to start next round for everyone
             sendWS('nextRound', {});
         } else {
             // Single player - start next round directly
