@@ -144,8 +144,56 @@ function getCurrentPanoramaPosition() {
     return gameState.originalLocation;
 }
 
+// LocalStorage helpers for preferences
+function savePreferencesToLocalStorage() {
+    try {
+        localStorage.setItem('gde_preferences', JSON.stringify(gameState.preferences));
+    } catch (error) {
+        console.warn('Failed to save preferences to localStorage:', error);
+    }
+}
+
+function loadPreferencesFromLocalStorage() {
+    try {
+        const saved = localStorage.getItem('gde_preferences');
+        if (saved) {
+            const preferences = JSON.parse(saved);
+            // Merge saved preferences with defaults (in case new preferences were added)
+            gameState.preferences = { ...gameState.preferences, ...preferences };
+            return true;
+        }
+    } catch (error) {
+        console.warn('Failed to load preferences from localStorage:', error);
+    }
+    return false;
+}
+
+function saveGameSelectionToLocalStorage(region, mode) {
+    try {
+        localStorage.setItem('gde_lastRegion', region);
+        localStorage.setItem('gde_lastMode', mode);
+    } catch (error) {
+        console.warn('Failed to save game selection to localStorage:', error);
+    }
+}
+
+function loadGameSelectionFromLocalStorage() {
+    try {
+        return {
+            region: localStorage.getItem('gde_lastRegion') || 'czechia',
+            mode: localStorage.getItem('gde_lastMode') || 'static'
+        };
+    } catch (error) {
+        console.warn('Failed to load game selection from localStorage:', error);
+        return { region: 'czechia', mode: 'static' };
+    }
+}
+
 // Initialize the game when page loads
 document.addEventListener('DOMContentLoaded', async () => {
+    // Load saved preferences first
+    loadPreferencesFromLocalStorage();
+    
     await loadRegionBoundaries();
     setupStartScreen();
     setupDifficultyPreferences();
@@ -242,6 +290,19 @@ function setupPanoramaErrorHandlers() {
 }
 
 function setupDifficultyPreferences() {
+    // Apply loaded preferences to UI
+    document.getElementById('pref-mapLayers').checked = gameState.preferences.mapLayers;
+    document.getElementById('pref-showRegion').checked = gameState.preferences.showRegion;
+    document.getElementById('pref-turnAround').checked = gameState.preferences.turnAround;
+    document.getElementById('pref-zoom').checked = gameState.preferences.zoom;
+    document.getElementById('pref-targetOriginal').checked = gameState.preferences.targetOriginal;
+    document.getElementById('pref-timeTrial').checked = gameState.preferences.timeTrial;
+    document.getElementById('pref-timeLimit').value = gameState.preferences.timeLimit;
+    document.getElementById('pref-infiniteMode').checked = gameState.preferences.infiniteMode;
+    
+    // Show/hide time trial settings based on loaded preference
+    document.getElementById('timeTrialSettings').style.display = gameState.preferences.timeTrial ? 'flex' : 'none';
+    
     // Open difficulty modal
     document.getElementById('difficultyPrefsBtn').addEventListener('click', () => {
         document.getElementById('difficultyModal').style.display = 'flex';
@@ -255,6 +316,7 @@ function setupDifficultyPreferences() {
     // Handle preference changes
     document.getElementById('pref-mapLayers').addEventListener('change', (e) => {
         gameState.preferences.mapLayers = e.target.checked;
+        savePreferencesToLocalStorage();
         // Hide/show map layer selector if game is running
         const selector = document.getElementById('mapLayerSelect');
         if (selector && gameState.gameStarted) {
@@ -264,46 +326,70 @@ function setupDifficultyPreferences() {
     
     document.getElementById('pref-showRegion').addEventListener('change', (e) => {
         gameState.preferences.showRegion = e.target.checked;
+        savePreferencesToLocalStorage();
         // Will be applied when map is initialized
     });
     
     document.getElementById('pref-turnAround').addEventListener('change', (e) => {
         gameState.preferences.turnAround = e.target.checked;
+        savePreferencesToLocalStorage();
     });
     
     document.getElementById('pref-zoom').addEventListener('change', (e) => {
         gameState.preferences.zoom = e.target.checked;
+        savePreferencesToLocalStorage();
     });
     
     document.getElementById('pref-targetOriginal').addEventListener('change', (e) => {
         gameState.preferences.targetOriginal = e.target.checked;
+        savePreferencesToLocalStorage();
     });
     
     document.getElementById('pref-timeTrial').addEventListener('change', (e) => {
         gameState.preferences.timeTrial = e.target.checked;
+        savePreferencesToLocalStorage();
         // Show/hide time limit input
         document.getElementById('timeTrialSettings').style.display = e.target.checked ? 'flex' : 'none';
     });
     
     document.getElementById('pref-timeLimit').addEventListener('change', (e) => {
         gameState.preferences.timeLimit = parseInt(e.target.value);
+        savePreferencesToLocalStorage();
     });
     
     document.getElementById('pref-infiniteMode').addEventListener('change', (e) => {
         gameState.preferences.infiniteMode = e.target.checked;
+        savePreferencesToLocalStorage();
     });
 }
 
 function setupStartScreen() {
-    let selectedRegion = 'czechia';
-    let selectedMode = 'static';
+    // Load saved selections
+    const savedSelection = loadGameSelectionFromLocalStorage();
+    let selectedRegion = savedSelection.region;
+    let selectedMode = savedSelection.mode;
     
-    // Preselect Czech Republic (first region) and Static mode
-    const czechiaBtn = document.querySelector('.region-btn[data-region="czechia"]');
-    if (czechiaBtn) czechiaBtn.classList.add('selected');
+    // Preselect saved region (or default to Czech Republic)
+    const regionBtn = document.querySelector(`.region-btn[data-region="${selectedRegion}"]`);
+    if (regionBtn) {
+        regionBtn.classList.add('selected');
+    } else {
+        // Fallback to czechia if saved region not found
+        const czechiaBtn = document.querySelector('.region-btn[data-region="czechia"]');
+        if (czechiaBtn) czechiaBtn.classList.add('selected');
+        selectedRegion = 'czechia';
+    }
     
-    const staticBtn = document.querySelector('.mode-btn[data-mode="static"]');
-    if (staticBtn) staticBtn.classList.add('selected');
+    // Preselect saved mode (or default to Static)
+    const modeBtn = document.querySelector(`.mode-btn[data-mode="${selectedMode}"]`);
+    if (modeBtn) {
+        modeBtn.classList.add('selected');
+    } else {
+        // Fallback to static if saved mode not found
+        const staticBtn = document.querySelector('.mode-btn[data-mode="static"]');
+        if (staticBtn) staticBtn.classList.add('selected');
+        selectedMode = 'static';
+    }
     
     // Enable start button since we have preselections
     document.getElementById('startGameBtn').disabled = false;
@@ -314,6 +400,7 @@ function setupStartScreen() {
             document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
             selectedRegion = btn.dataset.region;
+            saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
             checkStartButton();
         });
     });
@@ -329,6 +416,7 @@ function setupStartScreen() {
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
             selectedMode = btn.dataset.mode;
+            saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
             checkStartButton();
         });
     });
@@ -1385,7 +1473,27 @@ function returnToStartScreen() {
     // Clear selections
     document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
-    document.getElementById('startGameBtn').disabled = true;
+    
+    // Restore saved selections
+    const savedSelection = loadGameSelectionFromLocalStorage();
+    const regionBtn = document.querySelector(`.region-btn[data-region="${savedSelection.region}"]`);
+    if (regionBtn) {
+        regionBtn.classList.add('selected');
+    } else {
+        const czechiaBtn = document.querySelector('.region-btn[data-region="czechia"]');
+        if (czechiaBtn) czechiaBtn.classList.add('selected');
+    }
+    
+    const modeBtn = document.querySelector(`.mode-btn[data-mode="${savedSelection.mode}"]`);
+    if (modeBtn) {
+        modeBtn.classList.add('selected');
+    } else {
+        const staticBtn = document.querySelector('.mode-btn[data-mode="static"]');
+        if (staticBtn) staticBtn.classList.add('selected');
+    }
+    
+    // Enable start button since we have restored selections
+    document.getElementById('startGameBtn').disabled = false;
 }
 
 function showError(message) {
