@@ -25,21 +25,30 @@
         <!-- Mode Selection Screen -->
         <div id="modeSelectionScreen">
             <div class="start-container">
-                <h1>GDE SU?!</h1>
-                <p class="subtitle">Geo Guessing Game</p>
+                <h1 data-i18n="app.title">GDE SU?!</h1>
+                <p class="subtitle" data-i18n="app.subtitle">Geo Guessing Game</p>
+                
+                <!-- Language Selector -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <label for="languageSelect" style="margin-right: 10px; font-weight: 600;" data-i18n="language">Language:</label>
+                    <select id="languageSelect" style="padding: 8px 15px; border: 2px solid #667eea; border-radius: 8px; font-size: 14px; cursor: pointer; background: white;">
+                        <option value="en">English</option>
+                        <option value="cs">Čeština</option>
+                    </select>
+                </div>
                 
                 <div class="start-section">
-                    <h2>Select Play Mode</h2>
+                    <h2 data-i18n="mode.select.title">Select Play Mode</h2>
                     <div class="mode-grid">
                         <button class="play-mode-btn" id="singlePlayerBtn">
                             <span class="mode-icon">👤</span>
-                            <span class="mode-name">Single Player</span>
-                            <span class="mode-desc">Play alone at your own pace</span>
+                            <span class="mode-name" data-i18n="mode.single">Single Player</span>
+                            <span class="mode-desc" data-i18n="mode.single.desc">Play alone at your own pace</span>
                         </button>
                         <button class="play-mode-btn" id="multiPlayerBtn">
                             <span class="mode-icon">👥</span>
-                            <span class="mode-name">Multiplayer</span>
-                            <span class="mode-desc">Compete with friends online</span>
+                            <span class="mode-name" data-i18n="mode.multi">Multiplayer</span>
+                            <span class="mode-desc" data-i18n="mode.multi.desc">Compete with friends online</span>
                         </button>
                     </div>
                 </div>
@@ -49,79 +58,79 @@
         <!-- Start Screen -->
         <div id="startScreen" style="display: none;">
             <div class="start-container" style="position: relative;">
-                <h1>GDE SU?!</h1>
-                <p class="subtitle">Geo Guessing Game</p>
+                <h1 data-i18n="app.title">GDE SU?!</h1>
+                <p class="subtitle" data-i18n="app.subtitle">Geo Guessing Game</p>
                 
                 <div class="start-section">
-                    <h2>Select Region</h2>
+                    <h2 data-i18n="region.select">Select Region</h2>
                     <div class="region-grid">
                         <button class="region-btn" data-region="czechia">
                             <span class="region-icon">🇨🇿</span>
-                            <span class="region-name">Czech Republic</span>
+                            <span class="region-name" data-i18n="region.czechia">Czech Republic</span>
                         </button>
                         <button class="region-btn" data-region="prague">
                             <span class="region-icon">⭐</span>
-                            <span class="region-name">Prague</span>
+                            <span class="region-name" data-i18n="region.prague">Prague</span>
                         </button>
                         <button class="region-btn" data-region="brno">
                             <span class="region-icon">🚇</span>
-                            <span class="region-name">Brno</span>
+                            <span class="region-name" data-i18n="region.brno">Brno</span>
                         </button>
                         <button class="region-btn" data-region="moravia">
                             <span class="region-icon">🍷</span>
-                            <span class="region-name">Moravia</span>
+                            <span class="region-name" data-i18n="region.moravia">Moravia</span>
                         </button>
                         <button class="region-btn" data-region="bohemia">
                             <span class="region-icon">🍺</span>
-                            <span class="region-name">Bohemia</span>
+                            <span class="region-name" data-i18n="region.bohemia">Bohemia</span>
                         </button>
                         <button class="region-btn" id="drawRegionBtn">
                             <span class="region-icon">✏️</span>
-                            <span class="region-name">Draw Region</span>
+                            <span class="region-name" data-i18n="region.draw">Draw Region</span>
                         </button>
                     </div>
                 </div>
                 
                 <div class="start-section">
-                    <h2>Select Game Mode</h2>
+                    <h2 data-i18n="gamemode.select">Select Game Mode</h2>
                     <div class="mode-grid">
                         <button class="mode-btn" data-mode="explorer">
                             <span class="mode-icon">🚶</span>
-                            <span class="mode-name">Explorer Mode</span>
-                            <span class="mode-desc">Move around and explore the panorama</span>
+                            <span class="mode-name" data-i18n="gamemode.explorer">Explorer Mode</span>
+                            <span class="mode-desc" data-i18n="gamemode.explorer.desc">Move around and explore the panorama</span>
                         </button>
                         <button class="mode-btn" data-mode="static">
                             <span class="mode-icon">📸</span>
-                            <span class="mode-name">Static Mode</span>
-                            <span class="mode-desc">Fixed view, no movement allowed</span>
+                            <span class="mode-name" data-i18n="gamemode.static">Static Mode</span>
+                            <span class="mode-desc" data-i18n="gamemode.static.desc">Fixed view, no movement allowed</span>
                         </button>
                     </div>
                 </div>
                 
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-                    <button id="difficultyPrefsBtn" class="btn btn-secondary">⚙️ Game Settings</button>
-                    <button id="startGameBtn" class="btn btn-success" disabled>Start Game</button>
+                    <button id="difficultyPrefsBtn" class="btn btn-secondary"><span data-i18n="btn.settings">⚙️ Game Settings</span></button>
+                    <button id="startGameBtn" class="btn btn-success" disabled data-i18n="btn.start">Start Game</button>
                 </div>
             </div>
         </div>
 
         <!-- Header -->
         <header style="display: none;">
-            <h1 class="game-title">🌍 GDE SU?!</h1>
+            <h1 class="game-title" data-i18n="app.title">🌍 GDE SU?!</h1>
             <div class="score-container">
                 <div class="score-item" id="timerDisplay" style="display: none;">
-                    <span class="label">⏱️ Time:</span>
+                    <span class="label" data-i18n="header.time">⏱️ Time:</span>
                     <span id="timerValue">2:00</span>
                 </div>
                 <div class="score-item">
-                    <span class="label">Round:</span>
+                    <span class="label" data-i18n="header.round">Round:</span>
                     <span id="currentRound">1</span>/<span id="totalRounds">5</span>
                 </div>
                 <div class="score-item">
-                    <span class="label">Total Score:</span>
+                    <span class="label" data-i18n="header.score">Total Score:</span>
                     <span id="totalScore">0</span>
                 </div>
-                <button id="finishGame" class="btn btn-secondary" style="display: none; margin-left: 15px;">🏁 Finish Game</button>
+                <button id="finishGame" class="btn btn-secondary" style="display: none; margin-left: 15px;" data-i18n="btn.finish">🏁 Finish Game</button>
             </div>
         </header>
 
@@ -139,14 +148,14 @@
             <div id="mapOverlay" class="collapsed">
                 <div id="mapHeader">
                     <div class="map-title">
-                        <span>🗺️ Make your guess</span>
+                        <span data-i18n="map.title">🗺️ Make your guess</span>
                     </div>
                     <div class="map-controls">
                         <select id="mapLayerSelect" title="Map Layer">
-                            <option value="basic">Basic</option>
-                            <option value="outdoor">Outdoor</option>
-                            <option value="winter">Winter</option>
-                            <option value="aerial">Aerial</option>
+                            <option value="basic" data-i18n="map.layer.basic">Basic</option>
+                            <option value="outdoor" data-i18n="map.layer.outdoor">Outdoor</option>
+                            <option value="winter" data-i18n="map.layer.winter">Winter</option>
+                            <option value="aerial" data-i18n="map.layer.aerial">Aerial</option>
                         </select>
                         <button id="toggleMapSize" class="icon-btn" title="Expand/Collapse">
                             <span id="toggleIcon">⛶</span>
@@ -155,7 +164,7 @@
                 </div>
                 <div id="mapContainer"></div>
                 <div class="map-footer">
-                    <button id="submitGuess" class="btn btn-primary btn-compact" disabled>Submit Guess</button>
+                    <button id="submitGuess" class="btn btn-primary btn-compact" disabled data-i18n="btn.submit">Submit Guess</button>
                 </div>
             </div>
         </div>
@@ -163,36 +172,36 @@
         <!-- Result Modal -->
         <div id="resultModal" class="modal" style="display: none;">
             <div class="modal-content">
-                <h2 id="resultTitle">Round Result</h2>
+                <h2 id="resultTitle" data-i18n="result.title">Round Result</h2>
                 <div id="resultDetails">
-                    <p><strong>Distance:</strong> <span id="resultDistance"></span></p>
-                    <p><strong>Score:</strong> <span id="resultScore"></span></p>
+                    <p><strong data-i18n="result.distance">Distance:</strong> <span id="resultDistance"></span></p>
+                    <p><strong data-i18n="result.score">Score:</strong> <span id="resultScore"></span></p>
                 </div>
                 <div id="resultMap"></div>
                 <div id="multiplayerCountdown" style="display: none; text-align: center; margin-top: 15px; font-size: 16px; color: #667eea; font-weight: 600;">
                     Next round starts in <span id="countdownTimer">5</span> seconds...
                 </div>
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-                    <button id="minimizeResult" class="btn btn-secondary">Minimize</button>
-                    <button id="nextRound" class="btn btn-primary" style="display: none;">Next Round</button>
+                    <button id="minimizeResult" class="btn btn-secondary" data-i18n="btn.minimize">Minimize</button>
+                    <button id="nextRound" class="btn btn-primary" style="display: none;" data-i18n="btn.next">Next Round</button>
                 </div>
             </div>
         </div>
 
         <!-- Restore Result Button (shown when minimized) -->
-        <button id="restoreResult" class="restore-btn" style="display: none;">
+        <button id="restoreResult" class="restore-btn" style="display: none;" data-i18n="btn.restore">
             📊 Show Results
         </button>
 
         <!-- Multiplayer Winner Modal -->
         <div id="winnerModal" class="modal" style="display: none;">
             <div class="modal-content">
-                <h2>🏆 Game Finished!</h2>
+                <h2 data-i18n="final.title">🏆 Game Finished!</h2>
                 <div id="winnerAnnouncement" style="text-align: center; margin: 20px 0; font-size: 24px; font-weight: bold; color: #667eea;">
                 </div>
                 <div id="finalScoreboard"></div>
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-                    <button id="backToMenuBtn" class="btn btn-primary">Back to Menu</button>
+                    <button id="backToMenuBtn" class="btn btn-primary" data-i18n="btn.backmenu">Back to Menu</button>
                 </div>
             </div>
         </div>
@@ -200,14 +209,14 @@
         <!-- Game Settings Modal -->
         <div id="difficultyModal" class="modal" style="display: none;">
             <div class="modal-content">
-                <h2>⚙️ Game Settings</h2>
-                <p class="modal-subtitle">Customize your game settings</p>
+                <h2 data-i18n="settings.title">⚙️ Game Settings</h2>
+                <p class="modal-subtitle" data-i18n="settings.subtitle">Customize your game settings</p>
                 
                 <div class="preferences-list">
                     <div class="preference-item">
                         <div class="preference-info">
-                            <div class="preference-title">Switch Map Layers</div>
-                            <div class="preference-desc">Allow changing map style in minimap</div>
+                            <div class="preference-title" data-i18n="settings.maplayers">Switch Map Layers</div>
+                            <div class="preference-desc" data-i18n="settings.maplayers.desc">Allow changing map style in minimap</div>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="pref-mapLayers" checked>
@@ -217,8 +226,8 @@
                     
                     <div class="preference-item">
                         <div class="preference-info">
-                            <div class="preference-title">Show Play Region</div>
-                            <div class="preference-desc">Display region boundaries on minimap</div>
+                            <div class="preference-title" data-i18n="settings.showregion">Show Play Region</div>
+                            <div class="preference-desc" data-i18n="settings.showregion.desc">Display region boundaries on minimap</div>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="pref-showRegion" checked>
@@ -228,8 +237,8 @@
                     
                     <div class="preference-item">
                         <div class="preference-info">
-                            <div class="preference-title">Turn Around in Panorama</div>
-                            <div class="preference-desc">Allow rotating view 360°</div>
+                            <div class="preference-title" data-i18n="settings.turnaround">Turn Around in Panorama</div>
+                            <div class="preference-desc" data-i18n="settings.turnaround.desc">Allow rotating view 360°</div>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="pref-turnAround" checked>
@@ -239,8 +248,8 @@
                     
                     <div class="preference-item">
                         <div class="preference-info">
-                            <strong>Allow Zoom</strong>
-                            <p>Enable zooming in the panorama view</p>
+                            <strong data-i18n="settings.zoom">Allow Zoom</strong>
+                            <p data-i18n="settings.zoom.desc">Enable zooming in the panorama view</p>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="pref-zoom" checked>
@@ -250,8 +259,8 @@
                     
                     <div class="preference-item">
                         <div class="preference-info">
-                            <strong>Score from Original Location (Explorer Mode)</strong>
-                            <p>ON: starting point. OFF: current position</p>
+                            <strong data-i18n="settings.targetoriginal">Score from Original Location (Explorer Mode)</strong>
+                            <p data-i18n="settings.targetoriginal.desc">ON: starting point. OFF: current position</p>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="pref-targetOriginal" checked>
@@ -261,8 +270,8 @@
                     
                     <div class="preference-item">
                         <div class="preference-info">
-                            <strong>⏱️ Time Trial Mode</strong>
-                            <p>Add a countdown timer to each round</p>
+                            <strong data-i18n="settings.timetrial">⏱️ Time Trial Mode</strong>
+                            <p data-i18n="settings.timetrial.desc">Add a countdown timer to each round</p>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="pref-timeTrial">
@@ -272,7 +281,7 @@
                     
                     <div class="preference-item" id="timeTrialSettings" style="display: none;">
                         <div class="preference-info">
-                            <strong>⏰ Time per Round (seconds)</strong>
+                            <strong data-i18n="settings.timelimit">⏰ Time per Round (seconds)</strong>
                             <p>How long for each round</p>
                         </div>
                         <input type="number" id="pref-timeLimit" min="10" max="600" value="120" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
@@ -280,8 +289,8 @@
                     
                     <div class="preference-item">
                         <div class="preference-info">
-                            <strong>♾️ Infinite Mode</strong>
-                            <p>Play unlimited rounds until you decide to finish</p>
+                            <strong data-i18n="settings.infinite">♾️ Infinite Mode</strong>
+                            <p data-i18n="settings.infinite.desc">Play unlimited rounds until you decide to finish</p>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="pref-infiniteMode">
@@ -291,7 +300,7 @@
                 </div>
                 
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
-                    <button id="closeDifficultyModal" class="btn btn-primary">Done</button>
+                    <button id="closeDifficultyModal" class="btn btn-primary" data-i18n="settings.close">Done</button>
                 </div>
             </div>
         </div>
@@ -299,30 +308,30 @@
         <!-- Draw Region Modal -->
         <div id="drawRegionModal" class="modal" style="display: none;">
             <div class="modal-content modal-large">
-                <h2>✏️ Draw Your Custom Region</h2>
-                <p class="modal-subtitle">Click and drag to draw the area where you want to play</p>
+                <h2 data-i18n="draw.title">✏️ Draw Your Custom Region</h2>
+                <p class="modal-subtitle" data-i18n="draw.instructions">Click and drag to draw the area where you want to play</p>
                 <div class="draw-mode-toggle">
                     <button id="drawModeBtn" class="mode-toggle-btn active">
-                        <span>✏️</span> Draw
+                        <span>✏️</span> <span data-i18n="draw.mode.draw">Draw</span>
                     </button>
                     <button id="panModeBtn" class="mode-toggle-btn">
-                        <span>🤚</span> Move Map
+                        <span>🤚</span> <span data-i18n="draw.mode.pan">Move Map</span>
                     </button>
                 </div>
                 <div id="drawMapContainer"></div>
                 <div class="draw-save-section" style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; display: none;" id="drawSaveSection">
-                    <label for="customRegionName" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">💾 Save this region (optional):</label>
+                    <label for="customRegionName" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;" data-i18n="draw.name">💾 Save this region (optional):</label>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="text" id="customRegionName" placeholder="Enter region name (e.g., My Hometown)" maxlength="30" style="flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <input type="text" id="customRegionName" data-i18n-placeholder="draw.name.placeholder" placeholder="Enter region name (e.g., My Hometown)" maxlength="30" style="flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
                         <span style="color: #666; font-size: 12px;" id="regionSlotCount">0/5 slots used</span>
                     </div>
                     <p style="margin-top: 8px; font-size: 12px; color: #666;">Save up to 5 custom regions to reuse later</p>
                 </div>
                 <div class="draw-controls">
-                    <button id="clearDrawing" class="btn btn-secondary">Clear Drawing</button>
-                    <button id="saveDrawing" class="btn btn-success" disabled style="display: none;">💾 Save Region</button>
-                    <button id="confirmDrawing" class="btn btn-primary" disabled>Use Region</button>
-                    <button id="cancelDrawing" class="btn btn-secondary">Cancel</button>
+                    <button id="clearDrawing" class="btn btn-secondary" data-i18n="draw.clear">Clear Drawing</button>
+                    <button id="saveDrawing" class="btn btn-success" disabled style="display: none;" data-i18n="draw.save">💾 Save Region</button>
+                    <button id="confirmDrawing" class="btn btn-primary" disabled data-i18n="draw.confirm">Use Region</button>
+                    <button id="cancelDrawing" class="btn btn-secondary" data-i18n="draw.cancel">Cancel</button>
                 </div>
             </div>
         </div>
@@ -330,14 +339,14 @@
         <!-- Final Score Modal -->
         <div id="finalScoreModal" class="modal" style="display: none;">
             <div class="modal-content">
-                <h2>🎉 Game Complete!</h2>
+                <h2 data-i18n="final.title">🎉 Game Complete!</h2>
                 <div id="finalScoreDetails">
-                    <p class="final-score">Final Score: <span id="finalScore"></span></p>
+                    <p class="final-score"><span data-i18n="final.score">Final Score:</span> <span id="finalScore"></span></p>
                     <div id="roundBreakdown"></div>
                 </div>
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-                    <button id="playAgain" class="btn btn-success">Play Again</button>
-                    <button id="returnToMenu" class="btn btn-secondary">Return to Menu</button>
+                    <button id="playAgain" class="btn btn-success" data-i18n="btn.start">Play Again</button>
+                    <button id="returnToMenu" class="btn btn-secondary" data-i18n="btn.backmenu">Return to Menu</button>
                 </div>
             </div>
         </div>
@@ -345,7 +354,7 @@
         <!-- Panorama Error Modal -->
         <div id="panoramaErrorModal" class="modal" style="display: none;">
             <div class="modal-content" style="max-width: 800px;">
-                <h2>⚠️ No Panorama Found</h2>
+                <h2 data-i18n="error.panorama.title">⚠️ No Panorama Found</h2>
                 <p>Could not find a panorama in the selected region after <span id="attemptCount">0</span> attempts.</p>
                 <div id="debugMap" style="width: 100%; height: 400px; margin: 20px 0; border-radius: 8px;"></div>
                 <p style="font-size: 0.9em; color: #666;">
@@ -353,8 +362,8 @@
                     🟢 Green dots = attempts inside polygon (but no panorama found)
                 </p>
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-                    <button id="retryPanorama" class="btn btn-success">Retry</button>
-                    <button id="cancelPanorama" class="btn btn-secondary">Cancel</button>
+                    <button id="retryPanorama" class="btn btn-success" data-i18n="error.panorama.retry">Retry</button>
+                    <button id="cancelPanorama" class="btn btn-secondary" data-i18n="error.panorama.cancel">Cancel</button>
                 </div>
             </div>
         </div>
@@ -427,6 +436,7 @@
         </div>
     </div>
 
+    <script src="i18n.js"></script>
     <script src="app.js"></script>
     <script src="multiplayer.js"></script>
 </body>

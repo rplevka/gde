@@ -241,6 +241,17 @@ function deleteCustomRegion(name) {
 
 // Initialize the game when page loads
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize i18n first
+    initI18n();
+    
+    // Setup language selector
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', (e) => {
+            setLanguage(e.target.value);
+        });
+    }
+    
     // Load saved preferences first
     loadPreferencesFromLocalStorage();
     
@@ -852,9 +863,9 @@ function showTimeOutResult() {
     }
     
     // Update result details
-    document.getElementById('resultTitle').textContent = '⏰ Time\'s Up!';
-    document.getElementById('resultDistance').textContent = 'No guess submitted';
-    document.getElementById('resultScore').textContent = '0 points';
+    document.getElementById('resultTitle').textContent = t('result.timeout');
+    document.getElementById('resultDistance').textContent = t('result.noguess');
+    document.getElementById('resultScore').textContent = t('result.points', { score: 0 });
     
     // Get actual location
     const actualLocation = gameState.preferences.targetOriginal ? gameState.originalLocation : getCurrentPanoramaPosition();
@@ -1131,7 +1142,7 @@ async function loadPanorama(lat, lon) {
             apiKey: PROXY_API_KEY,
             radius: CONFIG.PANORAMA_SEARCH_RADIUS,
             showNavigation: showNavigation,
-            lang: 'en'
+            lang: getCurrentLanguage()
         });
 
         if (panoData.errorCode !== 'NONE') {
@@ -1221,7 +1232,7 @@ function placeGuess(lat, lon) {
     // Enable submit button
     const submitBtn = document.getElementById('submitGuess');
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Submit Guess';
+    submitBtn.textContent = t('btn.submit');
 }
 
 function submitGuess() {
@@ -1238,7 +1249,7 @@ function submitGuess() {
     // Disable submit button
     const submitBtn = document.getElementById('submitGuess');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Round Complete';
+    submitBtn.textContent = t('result.title');
 
     // Determine target location based on preference
     // If targetOriginal is true (or explorer mode not active), use original location
@@ -1312,9 +1323,9 @@ function calculateScore(distanceKm) {
 
 function showRoundResult(result) {
     // Update result details
-    document.getElementById('resultTitle').textContent = `Round ${result.round} Result`;
-    document.getElementById('resultDistance').textContent = result.distance ? `${result.distance.toFixed(2)} km` : 'N/A';
-    document.getElementById('resultScore').textContent = `${result.score} points`;
+    document.getElementById('resultTitle').textContent = t('result.round', { round: result.round });
+    document.getElementById('resultDistance').textContent = result.distance ? `${result.distance.toFixed(2)} ${t('units.km')}` : 'N/A';
+    document.getElementById('resultScore').textContent = t('result.points', { score: result.score });
 
     // Create result map
     const resultMapContainer = document.getElementById('resultMap');
@@ -1438,17 +1449,17 @@ function showFinalScore() {
 
     // Create round breakdown
     const breakdownContainer = document.getElementById('roundBreakdown');
-    breakdownContainer.innerHTML = '<h3 style="margin-bottom: 15px;">Round Breakdown:</h3>';
+    breakdownContainer.innerHTML = `<h3 style="margin-bottom: 15px;">${t('final.breakdown')}</h3>`;
 
     gameState.rounds.forEach(round => {
         const roundDiv = document.createElement('div');
         roundDiv.className = 'round-result';
-        const distanceText = round.distance !== null ? `${round.distance.toFixed(2)} km` : 'Time out';
+        const distanceText = round.distance !== null ? `${round.distance.toFixed(2)} ${t('units.km')}` : t('final.timeout');
         roundDiv.innerHTML = `
             <div>
-                <strong>Round ${round.round}:</strong> ${distanceText}
+                <strong>${t('final.round', { round: round.round })}</strong> ${distanceText}
             </div>
-            <div class="score">${round.score} pts</div>
+            <div class="score">${round.score} ${t('units.points')}</div>
         `;
         breakdownContainer.appendChild(roundDiv);
     });
@@ -1797,7 +1808,7 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
             document.getElementById('saveDrawing').style.display = 'inline-block';
             
             const savedRegions = getSavedCustomRegions();
-            document.getElementById('regionSlotCount').textContent = `${savedRegions.length}/${MAX_SAVED_REGIONS} slots used`;
+            document.getElementById('regionSlotCount').textContent = t('draw.slots', { used: savedRegions.length, total: MAX_SAVED_REGIONS });
             
             // Clear canvas for next drawing
             ctx.clearRect(0, 0, canvasOverlay.width, canvasOverlay.height);
@@ -1938,7 +1949,7 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
         
         // Update slot count
         const savedRegions = getSavedCustomRegions();
-        document.getElementById('regionSlotCount').textContent = `${savedRegions.length}/${MAX_SAVED_REGIONS} slots used`;
+        document.getElementById('regionSlotCount').textContent = t('draw.slots', { used: savedRegions.length, total: MAX_SAVED_REGIONS });
     }, 100);
 }
 
