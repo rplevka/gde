@@ -40,6 +40,7 @@ const translations = {
         'btn.restore': 'Show Results',
         'btn.reset': 'Reset Location',
         'btn.backmenu': 'Back to Menu',
+        'btn.multiplayer': '👥 Multiplayer Mode',
         
         // Game Header
         'header.round': 'Round:',
@@ -170,6 +171,7 @@ const translations = {
         'btn.restore': 'Zobrazit výsledky',
         'btn.reset': 'Vrátit na začátek',
         'btn.backmenu': 'Zpět do menu',
+        'btn.multiplayer': '👥 Hra pro více hráčů',
         
         // Game Header
         'header.round': 'Kolo:',
@@ -329,6 +331,10 @@ function updatePageLanguage() {
     const langSelector = document.getElementById('languageSelect');
     if (langSelector) {
         langSelector.value = currentLanguage;
+    }
+    const langSelector2 = document.getElementById('languageSelect2');
+    if (langSelector2) {
+        langSelector2.value = currentLanguage;
     }
     
     // Update HTML lang attribute

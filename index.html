@@ -23,7 +23,7 @@
 <body>
     <div id="app">
         <!-- Mode Selection Screen -->
-        <div id="modeSelectionScreen">
+        <div id="modeSelectionScreen" style="display: none;">
             <div class="start-container">
                 <h1 data-i18n="app.title">GDE SU?!</h1>
                 <p class="subtitle" data-i18n="app.subtitle">Geo Guessing Game</p>
@@ -56,10 +56,26 @@
         </div>
 
         <!-- Start Screen -->
-        <div id="startScreen" style="display: none;">
+        <div id="startScreen">
             <div class="start-container" style="position: relative;">
                 <h1 data-i18n="app.title">GDE SU?!</h1>
                 <p class="subtitle" data-i18n="app.subtitle">Geo Guessing Game</p>
+                
+                <!-- Language Selector -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <label for="languageSelect2" style="margin-right: 10px; font-weight: 600;" data-i18n="language">Language:</label>
+                    <select id="languageSelect2" style="padding: 8px 15px; border: 2px solid #667eea; border-radius: 8px; font-size: 14px; cursor: pointer; background: white;">
+                        <option value="en">English</option>
+                        <option value="cs">Čeština</option>
+                    </select>
+                </div>
+                
+                <!-- Multiplayer Button -->
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <button id="switchToMultiplayerBtn" class="btn btn-secondary" style="padding: 10px 20px;">
+                        <span data-i18n="btn.multiplayer">👥 Multiplayer Mode</span>
+                    </button>
+                </div>
                 
                 <div class="start-section">
                     <h2 data-i18n="region.select">Select Region</h2>

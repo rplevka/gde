@@ -251,6 +251,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             setLanguage(e.target.value);
         });
     }
+    const languageSelect2 = document.getElementById('languageSelect2');
+    if (languageSelect2) {
+        languageSelect2.addEventListener('change', (e) => {
+            setLanguage(e.target.value);
+        });
+    }
     
     // Load saved preferences first
     loadPreferencesFromLocalStorage();

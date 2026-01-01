@@ -30,6 +30,24 @@ function setupMultiplayerUI() {
         document.getElementById('multiplayerModal').style.display = 'flex';
     });
     
+    // Switch to multiplayer from start screen
+    document.getElementById('switchToMultiplayerBtn').addEventListener('click', () => {
+        multiplayerState.isMultiplayer = true;
+        document.getElementById('multiplayerModal').style.display = 'flex';
+    });
+    
+    // Sync language selectors
+    const langSelect1 = document.getElementById('languageSelect');
+    const langSelect2 = document.getElementById('languageSelect2');
+    if (langSelect1 && langSelect2) {
+        langSelect1.addEventListener('change', () => {
+            langSelect2.value = langSelect1.value;
+        });
+        langSelect2.addEventListener('change', () => {
+            langSelect1.value = langSelect2.value;
+        });
+    }
+    
     // Icon selection
     document.querySelectorAll('.icon-btn').forEach(btn => {
         btn.addEventListener('click', () => {
