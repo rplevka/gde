@@ -19,22 +19,31 @@ let multiplayerState = {
 // Initialize multiplayer UI handlers
 function setupMultiplayerUI() {
     // Mode selection
-    document.getElementById('singlePlayerBtn').addEventListener('click', () => {
-        multiplayerState.isMultiplayer = false;
-        document.getElementById('modeSelectionScreen').style.display = 'none';
-        document.getElementById('startScreen').style.display = 'flex';
-    });
+    const singlePlayerBtn = document.getElementById('singlePlayerBtn');
+    if (singlePlayerBtn) {
+        singlePlayerBtn.addEventListener('click', () => {
+            multiplayerState.isMultiplayer = false;
+            document.getElementById('modeSelectionScreen').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'flex';
+        });
+    }
     
-    document.getElementById('multiPlayerBtn').addEventListener('click', () => {
-        multiplayerState.isMultiplayer = true;
-        document.getElementById('multiplayerModal').style.display = 'flex';
-    });
+    const multiPlayerBtn = document.getElementById('multiPlayerBtn');
+    if (multiPlayerBtn) {
+        multiPlayerBtn.addEventListener('click', () => {
+            multiplayerState.isMultiplayer = true;
+            document.getElementById('multiplayerModal').style.display = 'flex';
+        });
+    }
     
     // Switch to multiplayer from start screen
-    document.getElementById('switchToMultiplayerBtn').addEventListener('click', () => {
-        multiplayerState.isMultiplayer = true;
-        document.getElementById('multiplayerModal').style.display = 'flex';
-    });
+    const switchToMultiplayerBtn = document.getElementById('switchToMultiplayerBtn');
+    if (switchToMultiplayerBtn) {
+        switchToMultiplayerBtn.addEventListener('click', () => {
+            multiplayerState.isMultiplayer = true;
+            document.getElementById('multiplayerModal').style.display = 'flex';
+        });
+    }
     
     // Sync language selectors
     const langSelect1 = document.getElementById('languageSelect');

@@ -241,9 +241,27 @@ function deleteCustomRegion(name) {
 
 // Initialize the game when page loads
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM Content Loaded - Initializing game...');
+
+    // Check if i18n is loaded
+    if (typeof initI18n === 'undefined') {
+        console.error('ERROR: i18n.js not loaded! Make sure i18n.js is included before app.js');
+        return;
+    }
+
+    // Ensure mode selection screen is hidden and start screen is visible
+    const modeSelectionScreen = document.getElementById('modeSelectionScreen');
+    const startScreen = document.getElementById('startScreen');
+    if (modeSelectionScreen) {
+        modeSelectionScreen.style.display = 'none';
+    }
+    if (startScreen) {
+        startScreen.style.display = 'flex';
+    }
+
     // Initialize i18n first
     initI18n();
-    
+
     // Setup language selector
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
@@ -257,14 +275,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             setLanguage(e.target.value);
         });
     }
-    
+
     // Load saved preferences first
     loadPreferencesFromLocalStorage();
-    
+
     await loadRegionBoundaries();
     setupStartScreen();
     setupDifficultyPreferences();
     setupPanoramaErrorHandlers();
+
+    console.log('Game initialization complete');
 });
 
 function showPanoramaErrorModal() {
@@ -431,11 +451,15 @@ function setupDifficultyPreferences() {
 }
 
 function setupStartScreen() {
+    console.log('Setting up start screen...');
+
     // Load saved selections
     const savedSelection = loadGameSelectionFromLocalStorage();
     let selectedRegion = savedSelection.region;
     let selectedMode = savedSelection.mode;
     
+    console.log('Loaded saved selection:', savedSelection);
+
     // Display saved custom regions first
     displaySavedCustomRegions();
     
@@ -484,11 +508,25 @@ function setupStartScreen() {
     }
     
     // Enable start button since we have preselections
-    document.getElementById('startGameBtn').disabled = false;
+    const startGameBtn = document.getElementById('startGameBtn');
+    if (startGameBtn) {
+        startGameBtn.disabled = false;
+    }
     
     // Region selection
+    const regionButtons = document.querySelectorAll('.region-btn');
+    console.log(`Found ${regionButtons.length} region buttons`);
+
     document.querySelectorAll('.region-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            console.log('Region button clicked:', btn.dataset.region);
+
+            // Ignore if this is the draw region button (it has its own handler)
+            if (btn.id === 'drawRegionBtn') {
+                console.log('Ignoring draw region button click (has own handler)');
+                return;
+            }
+
             document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
             selectedRegion = btn.dataset.region;
@@ -498,9 +536,12 @@ function setupStartScreen() {
     });
     
     // Draw region button
-    document.getElementById('drawRegionBtn').addEventListener('click', () => {
-        openDrawRegionModal(selectedRegion, checkStartButton);
-    });
+    const drawRegionBtn = document.getElementById('drawRegionBtn');
+    if (drawRegionBtn) {
+        drawRegionBtn.addEventListener('click', () => {
+            openDrawRegionModal(selectedRegion, checkStartButton);
+        });
+    }
     
     // Mode selection
     document.querySelectorAll('.mode-btn').forEach(btn => {

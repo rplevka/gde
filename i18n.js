@@ -346,6 +346,13 @@ function getCurrentLanguage() {
     return currentLanguage;
 }
 
+// Expose functions globally
+window.initI18n = initI18n;
+window.t = t;
+window.setLanguage = setLanguage;
+window.getCurrentLanguage = getCurrentLanguage;
+window.updatePageLanguage = updatePageLanguage;
+
 // Export functions for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { t, setLanguage, getCurrentLanguage, initI18n };
