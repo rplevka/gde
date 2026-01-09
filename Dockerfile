@@ -24,7 +24,7 @@ WORKDIR /app
 COPY --from=builder /build/server /app/server
 
 # Copy static files
-COPY index.html styles.css app.js multiplayer.js panorama-proxy.js regions-boundaries.json ./
+COPY index.html styles.css app.js i18n.js multiplayer.js panorama-proxy.js regions-boundaries.json ./
 
 # Copy API keys file if it exists (optional, can be mounted as volume or use env vars)
 COPY api_keys.example.yaml ./
