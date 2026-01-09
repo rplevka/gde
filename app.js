@@ -74,27 +74,133 @@ async function loadRegionBoundaries() {
         
         console.log('Boundaries file loaded:', Object.keys(boundaries));
         
-        // Add polygon paths to each region
-        for (const [key, region] of Object.entries(REGIONS)) {
-            if (boundaries[key]) {
-                console.log(`Processing ${key}:`, boundaries[key].coordinates);
-                // Convert GeoJSON coordinates to Leaflet format [lat, lon]
-                // GeoJSON format: coordinates[0] = array of [lon, lat] pairs
-                const geoCoords = boundaries[key].coordinates[0];
-                console.log(`First 3 coords for ${key}:`, geoCoords.slice(0, 3));
+        // Add polygon paths to existing regions AND add new Czech regions
+        for (const [key, boundaryData] of Object.entries(boundaries)) {
+            if (REGIONS[key]) {
+                // Update existing region with polygon data
+                console.log(`Processing existing ${key}:`, boundaryData.coordinates);
+                const geoCoords = boundaryData.coordinates[0];
                 const coords = geoCoords.map(coord => [coord[1], coord[0]]);
-                region.paths = [coords];
-                console.log(`✓ Loaded ${coords.length} points for ${key}`, coords.slice(0, 2));
-            } else {
-                console.log(`✗ No boundary data for ${key}`);
+                REGIONS[key].paths = [coords];
+                console.log(`✓ Loaded ${coords.length} points for ${key}`);
+            } else if (boundaryData.name_cz) {
+                // This is a Czech region - add it to REGIONS
+                console.log(`Adding new Czech region: ${key}`);
+                const geoCoords = boundaryData.coordinates[0];
+                const coords = geoCoords.map(coord => [coord[1], coord[0]]);
+                
+                // Calculate bounds from coordinates
+                const lats = coords.map(c => c[0]);
+                const lons = coords.map(c => c[1]);
+                
+                REGIONS[key] = {
+                    name: boundaryData.name,
+                    name_cz: boundaryData.name_cz,
+                    bounds: {
+                        minLat: Math.min(...lats),
+                        maxLat: Math.max(...lats),
+                        minLon: Math.min(...lons),
+                        maxLon: Math.max(...lons)
+                    },
+                    paths: [coords],
+                    isCzechRegion: true
+                };
+                console.log(`✓ Added ${key}: ${boundaryData.name}`);
             }
         }
         
         console.log('✅ Region boundaries loaded successfully');
-        console.log('REGIONS after loading:', REGIONS);
+        console.log('REGIONS after loading:', Object.keys(REGIONS));
+        
+        // Populate region buttons with Czech regions - will be called again from setupStartScreen with callback
     } catch (error) {
         console.error('❌ Could not load region boundaries:', error);
         console.error('Error details:', error.message, error.stack);
+    }
+}
+
+// Populate Czech region buttons
+function populateCzechRegionButtons(onRegionSelect) {
+    const regionGrid = document.querySelector('.region-grid');
+    if (!regionGrid) return;
+    
+    // Remove existing Czech region button (for language switching)
+    const existingBtn = document.getElementById('czechRegionsBtn');
+    if (existingBtn) existingBtn.remove();
+    
+    // Get all Czech regions (those with name_cz property)
+    const czechRegions = Object.entries(REGIONS)
+        .filter(([key, region]) => region.isCzechRegion)
+        .sort((a, b) => a[1].name.localeCompare(b[1].name));
+    
+    // Find insertion point - before saved custom regions or draw button
+    const firstSavedRegion = document.querySelector('.saved-custom-region-btn');
+    const drawBtn = document.getElementById('drawRegionBtn');
+    const insertBefore = firstSavedRegion || drawBtn;
+    
+    // Create single button with dropdown
+    const btn = document.createElement('button');
+    btn.id = 'czechRegionsBtn';
+    btn.className = 'region-btn';
+    btn.type = 'button';
+    btn.innerHTML = `
+        <span class="region-icon">🏛️</span>
+        <span class="region-name" data-i18n="region.czech_regions">Czech Regions</span>
+        <select id="czechRegionSelect" class="region-select" onclick="event.stopPropagation();">
+            <option value="" data-i18n="region.select_region">Select a region...</option>
+        </select>
+    `;
+    
+    // Insert before saved custom regions or draw button
+    if (insertBefore) {
+        regionGrid.insertBefore(btn, insertBefore);
+    } else {
+        regionGrid.appendChild(btn);
+    }
+    
+    // Populate select options
+    const select = btn.querySelector('#czechRegionSelect');
+    czechRegions.forEach(([key, region]) => {
+        const option = document.createElement('option');
+        option.value = key;
+        option.setAttribute('data-i18n', `region.${key}`);
+        option.textContent = region.name;
+        select.appendChild(option);
+    });
+    
+    // Handle button click - show/focus select
+    btn.addEventListener('click', function(e) {
+        if (e.target === select || select.contains(e.target)) return;
+        select.focus();
+        select.click();
+    });
+    
+    // Handle select change
+    select.addEventListener('change', function(e) {
+        const selectedKey = this.value;
+        if (selectedKey) {
+            document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            
+            // Update button to show it's selected and store the key as data attribute
+            btn.setAttribute('data-region', selectedKey);
+            
+            // Update button text to show selected region
+            const regionName = btn.querySelector('.region-name');
+            regionName.textContent = this.options[this.selectedIndex].text;
+            
+            // Call the callback to update selectedRegion in setupStartScreen scope
+            if (onRegionSelect) {
+                onRegionSelect(selectedKey);
+            }
+        }
+    });
+    
+    console.log(`✓ Added Czech regions selector with ${czechRegions.length} regions`);
+    
+    // Apply current language translations
+    if (typeof updatePageLanguage === 'function') {
+        updatePageLanguage();
     }
 }
 
@@ -463,6 +569,13 @@ function setupStartScreen() {
     // Display saved custom regions first
     displaySavedCustomRegions();
     
+    // Populate Czech regions button AFTER saved custom regions so it appears before them
+    populateCzechRegionButtons((region) => {
+        selectedRegion = region;
+        saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
+        checkStartButton();
+    });
+    
     // Preselect saved region (or default to Czech Republic)
     let regionBtn = null;
     
@@ -480,6 +593,28 @@ function setupStartScreen() {
                 gameState.customRegion = savedRegion.region;
                 gameState.selectedRegion = 'custom';
             }
+        }
+    } else if (REGIONS[selectedRegion]?.isCzechRegion) {
+        // Czech region - need to select it in the dropdown
+        const czechRegionsBtn = document.getElementById('czechRegionsBtn');
+        const czechRegionSelect = document.getElementById('czechRegionSelect');
+        
+        if (czechRegionsBtn && czechRegionSelect) {
+            // Select the region in the dropdown
+            czechRegionSelect.value = selectedRegion;
+            
+            // Mark button as selected
+            czechRegionsBtn.classList.add('selected');
+            czechRegionsBtn.setAttribute('data-region', selectedRegion);
+            
+            // Update button text to show selected region
+            const regionName = czechRegionsBtn.querySelector('.region-name');
+            const selectedOption = czechRegionSelect.options[czechRegionSelect.selectedIndex];
+            if (selectedOption) {
+                regionName.textContent = selectedOption.text;
+            }
+            
+            regionBtn = czechRegionsBtn; // Mark as found
         }
     } else {
         // Standard region
@@ -1013,6 +1148,19 @@ async function startNewRound() {
     const region = gameState.selectedRegion === 'custom' && gameState.customRegion 
         ? gameState.customRegion 
         : REGIONS[gameState.selectedRegion];
+    
+    if (!region) {
+        console.error('❌ Region not found:', gameState.selectedRegion);
+        console.error('Available regions:', Object.keys(REGIONS));
+        alert('Error: Selected region not found. Please select a different region.');
+        return;
+    }
+    
+    if (!region.bounds) {
+        console.error('❌ Region bounds not found for:', gameState.selectedRegion, region);
+        alert('Error: Region bounds not available. Please select a different region.');
+        return;
+    }
     
     const bounds = L.latLngBounds(
         [region.bounds.minLat, region.bounds.minLon],

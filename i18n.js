@@ -22,6 +22,24 @@ const translations = {
         'region.moravia': 'Moravia',
         'region.bohemia': 'Bohemia',
         'region.draw': 'Draw Region',
+        'region.czech_regions': 'Czech Regions',
+        'region.select_region': 'Select a region...',
+        
+        // Czech Regions
+        'region.praha': 'Prague',
+        'region.stredocesky_kraj': 'Central Bohemian Region',
+        'region.jihocesky_kraj': 'South Bohemian Region',
+        'region.plzeňsky_kraj': 'Plzeň Region',
+        'region.karlovarsky_kraj': 'Karlovy Vary Region',
+        'region.ústecky_kraj': 'Ústí nad Labem Region',
+        'region.liberecky_kraj': 'Liberec Region',
+        'region.kralovehradecky_kraj': 'Hradec Králové Region',
+        'region.pardubicky_kraj': 'Pardubice Region',
+        'region.kraj_vysocina': 'Vysočina Region',
+        'region.jihomoravsky_kraj': 'South Moravian Region',
+        'region.olomoucky_kraj': 'Olomouc Region',
+        'region.zlinsky_kraj': 'Zlín Region',
+        'region.moravskoslezsky_kraj': 'Moravian-Silesian Region',
         
         // Start Screen - Game Mode
         'gamemode.select': 'Select Game Mode',
@@ -153,6 +171,24 @@ const translations = {
         'region.moravia': 'Morava',
         'region.bohemia': 'Čechy',
         'region.draw': 'Vlastní region',
+        'region.czech_regions': 'České kraje',
+        'region.select_region': 'Vyber kraj...',
+        
+        // Czech Regions
+        'region.praha': 'Praha',
+        'region.stredocesky_kraj': 'Středočeský kraj',
+        'region.jihocesky_kraj': 'Jihočeský kraj',
+        'region.plzeňsky_kraj': 'Plzeňský kraj',
+        'region.karlovarsky_kraj': 'Karlovarský kraj',
+        'region.ústecky_kraj': 'Ústecký kraj',
+        'region.liberecky_kraj': 'Liberecký kraj',
+        'region.kralovehradecky_kraj': 'Královéhradecký kraj',
+        'region.pardubicky_kraj': 'Pardubický kraj',
+        'region.kraj_vysocina': 'Kraj Vysočina',
+        'region.jihomoravsky_kraj': 'Jihomoravský kraj',
+        'region.olomoucky_kraj': 'Olomoucký kraj',
+        'region.zlinsky_kraj': 'Zlínský kraj',
+        'region.moravskoslezsky_kraj': 'Moravskoslezský kraj',
         
         // Start Screen - Game Mode
         'gamemode.select': 'Vyber herní režim',
