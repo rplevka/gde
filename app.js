@@ -79,7 +79,8 @@ async function loadBoundaryIndex() {
         const allBoundaries = [
             ...(boundaryIndex.misc || []),
             ...(boundaryIndex.cities || []),
-            ...(boundaryIndex.regions || [])
+            ...(boundaryIndex.regions || []),
+            ...(boundaryIndex.districts || [])
         ];
         
         for (const region of allBoundaries) {
@@ -88,11 +89,15 @@ async function loadBoundaryIndex() {
                     name: region.name,
                     name_cz: region.name_cz,
                     file: region.file,
-                    isCzechRegion: !!region.name_cz
+                    isCzechRegion: !!region.name_cz,
+                    isDistrict: !!(boundaryIndex.districts && boundaryIndex.districts.find(d => d.key === region.key))
                 };
             } else {
                 // Update existing regions with file reference
                 REGIONS[region.key].file = region.file;
+                if (boundaryIndex.districts && boundaryIndex.districts.find(d => d.key === region.key)) {
+                    REGIONS[region.key].isDistrict = true;
+                }
             }
         }
         
@@ -241,6 +246,97 @@ function populateCzechRegionButtons(onRegionSelect) {
     });
     
     console.log(`✓ Added Czech regions selector with ${czechRegions.length} regions`);
+    
+    // Apply current language translations
+    if (typeof updatePageLanguage === 'function') {
+        updatePageLanguage();
+    }
+}
+
+// Populate Czech district buttons with dropdown
+function populateCzechDistrictButtons(onDistrictSelect) {
+    const regionGrid = document.querySelector('.region-grid');
+    if (!regionGrid) return;
+    
+    // Remove existing Czech districts button (for language switching)
+    const existingBtn = document.getElementById('czechDistrictsBtn');
+    if (existingBtn) existingBtn.remove();
+    
+    // Get all Czech districts from index
+    if (!boundaryIndex || !boundaryIndex.districts) {
+        console.warn('District data not loaded yet');
+        return;
+    }
+    
+    const czechDistricts = boundaryIndex.districts
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Find insertion point - after Czech regions button, before saved custom regions or draw button
+    const czechRegionsBtn = document.getElementById('czechRegionsBtn');
+    const firstSavedRegion = document.querySelector('.saved-custom-region-btn');
+    const drawBtn = document.getElementById('drawRegionBtn');
+    const insertBefore = firstSavedRegion || drawBtn;
+    
+    // Create single button with dropdown
+    const btn = document.createElement('button');
+    btn.id = 'czechDistrictsBtn';
+    btn.className = 'region-btn';
+    btn.type = 'button';
+    btn.innerHTML = `
+        <span class="region-icon">🏘️</span>
+        <span class="region-name" data-i18n="region.czech_districts">Czech Districts</span>
+        <select id="czechDistrictSelect" class="region-select" onclick="event.stopPropagation();">
+            <option value="" data-i18n="region.select_district">Select a district...</option>
+        </select>
+    `;
+    
+    // Insert before saved custom regions or draw button
+    if (insertBefore) {
+        regionGrid.insertBefore(btn, insertBefore);
+    } else {
+        regionGrid.appendChild(btn);
+    }
+    
+    // Populate select options
+    const select = btn.querySelector('#czechDistrictSelect');
+    czechDistricts.forEach(district => {
+        const option = document.createElement('option');
+        option.value = district.key;
+        option.setAttribute('data-i18n', `district.${district.key}`);
+        option.textContent = district.name;
+        select.appendChild(option);
+    });
+    
+    // Handle button click - show/focus select
+    btn.addEventListener('click', function(e) {
+        if (e.target === select || select.contains(e.target)) return;
+        select.focus();
+        select.click();
+    });
+    
+    // Handle select change
+    select.addEventListener('change', function(e) {
+        const selectedKey = this.value;
+        if (selectedKey) {
+            document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            
+            // Update button to show it's selected and store the key as data attribute
+            btn.setAttribute('data-region', selectedKey);
+            
+            // Update button text to show selected district
+            const districtName = btn.querySelector('.region-name');
+            districtName.textContent = this.options[this.selectedIndex].text;
+            
+            // Call the callback to update selectedRegion in setupStartScreen scope
+            if (onDistrictSelect) {
+                onDistrictSelect(selectedKey);
+            }
+        }
+    });
+    
+    console.log(`✓ Added Czech districts selector with ${czechDistricts.length} districts`);
     
     // Apply current language translations
     if (typeof updatePageLanguage === 'function') {
@@ -620,6 +716,13 @@ function setupStartScreen() {
         checkStartButton();
     });
     
+    // Populate Czech districts button
+    populateCzechDistrictButtons((district) => {
+        selectedRegion = district;
+        saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
+        checkStartButton();
+    });
+    
     // Preselect saved region (or default to Czech Republic)
     let regionBtn = null;
     
@@ -637,6 +740,28 @@ function setupStartScreen() {
                 gameState.customRegion = savedRegion.region;
                 gameState.selectedRegion = 'custom';
             }
+        }
+    } else if (REGIONS[selectedRegion]?.isDistrict) {
+        // Czech district - need to select it in the dropdown
+        const czechDistrictsBtn = document.getElementById('czechDistrictsBtn');
+        const czechDistrictSelect = document.getElementById('czechDistrictSelect');
+        
+        if (czechDistrictsBtn && czechDistrictSelect) {
+            // Select the district in the dropdown
+            czechDistrictSelect.value = selectedRegion;
+            
+            // Mark button as selected
+            czechDistrictsBtn.classList.add('selected');
+            czechDistrictsBtn.setAttribute('data-region', selectedRegion);
+            
+            // Update button text to show selected district
+            const districtName = czechDistrictsBtn.querySelector('.region-name');
+            const selectedOption = czechDistrictSelect.options[czechDistrictSelect.selectedIndex];
+            if (selectedOption) {
+                districtName.textContent = selectedOption.text;
+            }
+            
+            regionBtn = czechDistrictsBtn; // Mark as found
         }
     } else if (REGIONS[selectedRegion]?.isCzechRegion) {
         // Czech region - need to select it in the dropdown

@@ -34,79 +34,461 @@
       "key": "stredocesky_kraj",
       "name": "Central Bohemian Region",
       "file": "region-stredocesky.json",
-      "name_cz": "Středočeský kraj"
+      "name_cz": "St\u0159edo\u010desk\u00fd kraj"
     },
     {
       "key": "jihocesky_kraj",
       "name": "South Bohemian Region",
       "file": "region-jihocesky.json",
-      "name_cz": "Jihočeský kraj"
+      "name_cz": "Jiho\u010desk\u00fd kraj"
     },
     {
-      "key": "plzeňsky_kraj",
-      "name": "Plzeň Region",
+      "key": "plze\u0148sky_kraj",
+      "name": "Plze\u0148 Region",
       "file": "region-plzensky.json",
-      "name_cz": "Plzeňský kraj"
+      "name_cz": "Plze\u0148sk\u00fd kraj"
     },
     {
       "key": "karlovarsky_kraj",
       "name": "Karlovy Vary Region",
       "file": "region-karlovarsky.json",
-      "name_cz": "Karlovarský kraj"
+      "name_cz": "Karlovarsk\u00fd kraj"
     },
     {
-      "key": "ústecky_kraj",
-      "name": "Ústí nad Labem Region",
+      "key": "\u00fastecky_kraj",
+      "name": "\u00dast\u00ed nad Labem Region",
       "file": "region-ustecky.json",
-      "name_cz": "Ústecký kraj"
+      "name_cz": "\u00dasteck\u00fd kraj"
     },
     {
       "key": "liberecky_kraj",
       "name": "Liberec Region",
       "file": "region-liberecky.json",
-      "name_cz": "Liberecký kraj"
+      "name_cz": "Libereck\u00fd kraj"
     },
     {
       "key": "kralovehradecky_kraj",
-      "name": "Hradec Králové Region",
+      "name": "Hradec Kr\u00e1lov\u00e9 Region",
       "file": "region-kralovehradecky.json",
-      "name_cz": "Královéhradecký kraj"
+      "name_cz": "Kr\u00e1lov\u00e9hradeck\u00fd kraj"
     },
     {
       "key": "pardubicky_kraj",
       "name": "Pardubice Region",
       "file": "region-pardubicky.json",
-      "name_cz": "Pardubický kraj"
+      "name_cz": "Pardubick\u00fd kraj"
     },
     {
       "key": "kraj_vysocina",
-      "name": "Vysočina Region",
+      "name": "Vyso\u010dina Region",
       "file": "region-vysocina.json",
-      "name_cz": "Kraj Vysočina"
+      "name_cz": "Kraj Vyso\u010dina"
     },
     {
       "key": "jihomoravsky_kraj",
       "name": "South Moravian Region",
       "file": "region-jihomoravsky.json",
-      "name_cz": "Jihomoravský kraj"
+      "name_cz": "Jihomoravsk\u00fd kraj"
     },
     {
       "key": "olomoucky_kraj",
       "name": "Olomouc Region",
       "file": "region-olomoucky.json",
-      "name_cz": "Olomoucký kraj"
+      "name_cz": "Olomouck\u00fd kraj"
     },
     {
       "key": "zlinsky_kraj",
-      "name": "Zlín Region",
+      "name": "Zl\u00edn Region",
       "file": "region-zlinsky.json",
-      "name_cz": "Zlínský kraj"
+      "name_cz": "Zl\u00ednsk\u00fd kraj"
     },
     {
       "key": "moravskoslezsky_kraj",
       "name": "Moravian-Silesian Region",
       "file": "region-moravskoslezsky.json",
-      "name_cz": "Moravskoslezský kraj"
+      "name_cz": "Moravskoslezsk\u00fd kraj"
+    }
+  ],
+  "districts": [
+    {
+      "key": "benesov",
+      "name": "Bene\u0161ov",
+      "file": "district-benesov.json"
+    },
+    {
+      "key": "beroun",
+      "name": "Beroun",
+      "file": "district-beroun.json"
+    },
+    {
+      "key": "blansko",
+      "name": "Blansko",
+      "file": "district-blansko.json"
+    },
+    {
+      "key": "breclav",
+      "name": "B\u0159eclav",
+      "file": "district-breclav.json"
+    },
+    {
+      "key": "brno_mesto",
+      "name": "Brno-m\u011bsto",
+      "file": "district-brno-mesto.json"
+    },
+    {
+      "key": "brno_venkov",
+      "name": "Brno-venkov",
+      "file": "district-brno-venkov.json"
+    },
+    {
+      "key": "bruntal",
+      "name": "Brunt\u00e1l",
+      "file": "district-bruntal.json"
+    },
+    {
+      "key": "ceska_lipa",
+      "name": "\u010cesk\u00e1 L\u00edpa",
+      "file": "district-ceska-lipa.json"
+    },
+    {
+      "key": "ceske_budejovice",
+      "name": "\u010cesk\u00e9 Bud\u011bjovice",
+      "file": "district-ceske-budejovice.json"
+    },
+    {
+      "key": "cesky_krumlov",
+      "name": "\u010cesk\u00fd Krumlov",
+      "file": "district-cesky-krumlov.json"
+    },
+    {
+      "key": "cheb",
+      "name": "Cheb",
+      "file": "district-cheb.json"
+    },
+    {
+      "key": "chomutov",
+      "name": "Chomutov",
+      "file": "district-chomutov.json"
+    },
+    {
+      "key": "chrudim",
+      "name": "Chrudim",
+      "file": "district-chrudim.json"
+    },
+    {
+      "key": "decin",
+      "name": "D\u011b\u010d\u00edn",
+      "file": "district-decin.json"
+    },
+    {
+      "key": "domazlice",
+      "name": "Doma\u017elice",
+      "file": "district-domazlice.json"
+    },
+    {
+      "key": "frydek_mistek",
+      "name": "Fr\u00fddek-M\u00edstek",
+      "file": "district-frydek-mistek.json"
+    },
+    {
+      "key": "havlickuv_brod",
+      "name": "Havl\u00ed\u010dk\u016fv Brod",
+      "file": "district-havlickuv-brod.json"
+    },
+    {
+      "key": "hodonin",
+      "name": "Hodon\u00edn",
+      "file": "district-hodonin.json"
+    },
+    {
+      "key": "hradec_kralove",
+      "name": "Hradec Kr\u00e1lov\u00e9",
+      "file": "district-hradec-kralove.json"
+    },
+    {
+      "key": "jablonec_nad_nisou",
+      "name": "Jablonec nad Nisou",
+      "file": "district-jablonec-nad-nisou.json"
+    },
+    {
+      "key": "jesenik",
+      "name": "Jesen\u00edk",
+      "file": "district-jesenik.json"
+    },
+    {
+      "key": "jicin",
+      "name": "Ji\u010d\u00edn",
+      "file": "district-jicin.json"
+    },
+    {
+      "key": "jihlava",
+      "name": "Jihlava",
+      "file": "district-jihlava.json"
+    },
+    {
+      "key": "jindrichuv_hradec",
+      "name": "Jind\u0159ich\u016fv Hradec",
+      "file": "district-jindrichuv-hradec.json"
+    },
+    {
+      "key": "karlovy_vary",
+      "name": "Karlovy Vary",
+      "file": "district-karlovy-vary.json"
+    },
+    {
+      "key": "karvina",
+      "name": "Karvin\u00e1",
+      "file": "district-karvina.json"
+    },
+    {
+      "key": "kladno",
+      "name": "Kladno",
+      "file": "district-kladno.json"
+    },
+    {
+      "key": "klatovy",
+      "name": "Klatovy",
+      "file": "district-klatovy.json"
+    },
+    {
+      "key": "kolin",
+      "name": "Kol\u00edn",
+      "file": "district-kolin.json"
+    },
+    {
+      "key": "kromeriz",
+      "name": "Krom\u011b\u0159\u00ed\u017e",
+      "file": "district-kromeriz.json"
+    },
+    {
+      "key": "kutna_hora",
+      "name": "Kutn\u00e1 Hora",
+      "file": "district-kutna-hora.json"
+    },
+    {
+      "key": "liberec",
+      "name": "Liberec",
+      "file": "district-liberec.json"
+    },
+    {
+      "key": "litomerice",
+      "name": "Litom\u011b\u0159ice",
+      "file": "district-litomerice.json"
+    },
+    {
+      "key": "louny",
+      "name": "Louny",
+      "file": "district-louny.json"
+    },
+    {
+      "key": "melnik",
+      "name": "M\u011bln\u00edk",
+      "file": "district-melnik.json"
+    },
+    {
+      "key": "mlada_boleslav",
+      "name": "Mlad\u00e1 Boleslav",
+      "file": "district-mlada-boleslav.json"
+    },
+    {
+      "key": "most",
+      "name": "Most",
+      "file": "district-most.json"
+    },
+    {
+      "key": "nachod",
+      "name": "N\u00e1chod",
+      "file": "district-nachod.json"
+    },
+    {
+      "key": "novy_jicin",
+      "name": "Nov\u00fd Ji\u010d\u00edn",
+      "file": "district-novy-jicin.json"
+    },
+    {
+      "key": "nymburk",
+      "name": "Nymburk",
+      "file": "district-nymburk.json"
+    },
+    {
+      "key": "olomouc",
+      "name": "Olomouc",
+      "file": "district-olomouc.json"
+    },
+    {
+      "key": "opava",
+      "name": "Opava",
+      "file": "district-opava.json"
+    },
+    {
+      "key": "ostrava_mesto",
+      "name": "Ostrava-m\u011bsto",
+      "file": "district-ostrava-mesto.json"
+    },
+    {
+      "key": "pardubice",
+      "name": "Pardubice",
+      "file": "district-pardubice.json"
+    },
+    {
+      "key": "pelhrimov",
+      "name": "Pelh\u0159imov",
+      "file": "district-pelhrimov.json"
+    },
+    {
+      "key": "pisek",
+      "name": "P\u00edsek",
+      "file": "district-pisek.json"
+    },
+    {
+      "key": "plzen_jih",
+      "name": "Plze\u0148-jih",
+      "file": "district-plzen-jih.json"
+    },
+    {
+      "key": "plzen_mesto",
+      "name": "Plze\u0148-m\u011bsto",
+      "file": "district-plzen-mesto.json"
+    },
+    {
+      "key": "plzen_sever",
+      "name": "Plze\u0148-sever",
+      "file": "district-plzen-sever.json"
+    },
+    {
+      "key": "prachatice",
+      "name": "Prachatice",
+      "file": "district-prachatice.json"
+    },
+    {
+      "key": "praha_vychod",
+      "name": "Praha-v\u00fdchod",
+      "file": "district-praha-vychod.json"
+    },
+    {
+      "key": "praha_zapad",
+      "name": "Praha-z\u00e1pad",
+      "file": "district-praha-zapad.json"
+    },
+    {
+      "key": "prerov",
+      "name": "P\u0159erov",
+      "file": "district-prerov.json"
+    },
+    {
+      "key": "pribram",
+      "name": "P\u0159\u00edbram",
+      "file": "district-pribram.json"
+    },
+    {
+      "key": "prostejov",
+      "name": "Prost\u011bjov",
+      "file": "district-prostejov.json"
+    },
+    {
+      "key": "rakovnik",
+      "name": "Rakovn\u00edk",
+      "file": "district-rakovnik.json"
+    },
+    {
+      "key": "rokycany",
+      "name": "Rokycany",
+      "file": "district-rokycany.json"
+    },
+    {
+      "key": "rychnov_nad_kneznou",
+      "name": "Rychnov nad Kn\u011b\u017enou",
+      "file": "district-rychnov-nad-kneznou.json"
+    },
+    {
+      "key": "semily",
+      "name": "Semily",
+      "file": "district-semily.json"
+    },
+    {
+      "key": "sokolov",
+      "name": "Sokolov",
+      "file": "district-sokolov.json"
+    },
+    {
+      "key": "strakonice",
+      "name": "Strakonice",
+      "file": "district-strakonice.json"
+    },
+    {
+      "key": "sumperk",
+      "name": "\u0160umperk",
+      "file": "district-sumperk.json"
+    },
+    {
+      "key": "svitavy",
+      "name": "Svitavy",
+      "file": "district-svitavy.json"
+    },
+    {
+      "key": "tabor",
+      "name": "T\u00e1bor",
+      "file": "district-tabor.json"
+    },
+    {
+      "key": "tachov",
+      "name": "Tachov",
+      "file": "district-tachov.json"
+    },
+    {
+      "key": "teplice",
+      "name": "Teplice",
+      "file": "district-teplice.json"
+    },
+    {
+      "key": "trebic",
+      "name": "T\u0159eb\u00ed\u010d",
+      "file": "district-trebic.json"
+    },
+    {
+      "key": "trutnov",
+      "name": "Trutnov",
+      "file": "district-trutnov.json"
+    },
+    {
+      "key": "uherske_hradiste",
+      "name": "Uhersk\u00e9 Hradi\u0161t\u011b",
+      "file": "district-uherske-hradiste.json"
+    },
+    {
+      "key": "usti_nad_labem",
+      "name": "\u00dast\u00ed nad Labem",
+      "file": "district-usti-nad-labem.json"
+    },
+    {
+      "key": "usti_nad_orlici",
+      "name": "\u00dast\u00ed nad Orlic\u00ed",
+      "file": "district-usti-nad-orlici.json"
+    },
+    {
+      "key": "vsetin",
+      "name": "Vset\u00edn",
+      "file": "district-vsetin.json"
+    },
+    {
+      "key": "vyskov",
+      "name": "Vy\u0161kov",
+      "file": "district-vyskov.json"
+    },
+    {
+      "key": "zdar_nad_sazavou",
+      "name": "\u017d\u010f\u00e1r nad S\u00e1zavou",
+      "file": "district-zdar-nad-sazavou.json"
+    },
+    {
+      "key": "zlin",
+      "name": "Zl\u00edn",
+      "file": "district-zlin.json"
+    },
+    {
+      "key": "znojmo",
+      "name": "Znojmo",
+      "file": "district-znojmo.json"
     }
   ]
 }
