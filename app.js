@@ -976,6 +976,11 @@ function setupEventListeners() {
 
     // Next round button
     document.getElementById('nextRound').addEventListener('click', () => {
+        // Prevent double-clicking
+        const nextRoundBtn = document.getElementById('nextRound');
+        if (nextRoundBtn.disabled) return;
+        nextRoundBtn.disabled = true;
+
         // Close result modal and restore button
         document.getElementById('resultModal').style.display = 'none';
         document.getElementById('restoreResult').style.display = 'none';
@@ -1353,7 +1358,9 @@ async function startNewRound() {
     submitBtn.style.display = 'inline-block';
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submit';
-    document.getElementById('nextRound').style.display = 'none';
+    const nextRoundBtn = document.getElementById('nextRound');
+    nextRoundBtn.style.display = 'none';
+    nextRoundBtn.disabled = false; // Re-enable for next time
     
     // Show/hide finish game button based on infinite mode
     const finishGameBtn = document.getElementById('finishGame');
