@@ -1,6 +1,11 @@
 # Build stage
 FROM golang:1.21-alpine AS builder
 
+# Build arguments for version info
+ARG BUILD_VERSION=dev
+ARG BUILD_DATE=unknown
+ARG BUILD_BRANCH=main
+
 WORKDIR /build
 
 # Copy go files
@@ -18,6 +23,11 @@ RUN go build -o server server.go multiplayer.go
 # Runtime stage
 FROM alpine:latest
 
+# Pass build arguments to runtime
+ARG BUILD_VERSION=dev
+ARG BUILD_DATE=unknown
+ARG BUILD_BRANCH=main
+
 WORKDIR /app
 
 # Copy binary from builder
@@ -28,6 +38,9 @@ COPY index.html styles.css app.js i18n.js multiplayer.js panorama-proxy.js ./
 
 # Copy boundaries directory
 COPY boundaries/ ./boundaries/
+
+# Create version.json with build info
+RUN echo "{\"version\":\"${BUILD_VERSION}\",\"date\":\"${BUILD_DATE}\",\"branch\":\"${BUILD_BRANCH}\"}" > version.json
 
 # Copy API keys file if it exists (optional, can be mounted as volume or use env vars)
 COPY api_keys.example.yaml ./

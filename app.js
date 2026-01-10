@@ -168,6 +168,45 @@ async function loadRegionBoundaries() {
     }
 }
 
+// Load and display version info
+async function loadVersionInfo() {
+    try {
+        const response = await fetch('version.json');
+        if (!response.ok) {
+            throw new Error('Version file not found');
+        }
+        const versionData = await response.json();
+        
+        // Format version display
+        const shortVersion = versionData.version.substring(0, 7);
+        let versionText = `v ${shortVersion}`;
+        
+        if (versionData.date && versionData.date !== 'unknown' && versionData.date !== 'local-development') {
+            const date = new Date(versionData.date);
+            const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+            versionText += ` (${dateStr})`;
+        }
+        
+        if (versionData.branch && versionData.branch !== 'main') {
+            versionText += ` [${versionData.branch}]`;
+        }
+        
+        const versionElement = document.getElementById('versionInfo');
+        if (versionElement) {
+            versionElement.textContent = versionText;
+            versionElement.title = `Version: ${versionData.version}\nBranch: ${versionData.branch}\nBuilt: ${versionData.date}`;
+        }
+        
+        console.log('📋 Version:', versionData);
+    } catch (error) {
+        console.warn('Could not load version info:', error);
+        const versionElement = document.getElementById('versionInfo');
+        if (versionElement) {
+            versionElement.textContent = 'v-dev';
+        }
+    }
+}
+
 // Populate Czech region buttons
 function populateCzechRegionButtons(onRegionSelect) {
     const regionGrid = document.querySelector('.region-grid');
@@ -507,6 +546,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize i18n first
     initI18n();
+    
+    // Load version info
+    loadVersionInfo();
 
     // Setup language selector
     const languageSelect = document.getElementById('languageSelect');
