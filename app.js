@@ -21,7 +21,7 @@ let REGIONS = {
             maxLon: 18.9
         }
     },
-    prague: {
+    praha: {
         name: 'Prague',
         bounds: {
             minLat: 49.94,
@@ -59,60 +59,104 @@ let REGIONS = {
     }
 };
 
-// Load region boundaries from GeoJSON file
-async function loadRegionBoundaries() {
-    console.log('🔄 Starting to load region boundaries...');
+// Boundary index cache
+let boundaryIndex = null;
+
+// Load boundary index from boundaries/index.json
+async function loadBoundaryIndex() {
+    if (boundaryIndex) return boundaryIndex;
+    
+    console.log('🔄 Loading boundary index...');
     try {
-        console.log('📡 Fetching regions-boundaries.json...');
-        const response = await fetch('regions-boundaries.json');
-        console.log('📡 Response status:', response.status, response.ok);
+        const response = await fetch('boundaries/index.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const boundaries = await response.json();
-        console.log('📦 JSON parsed successfully');
+        boundaryIndex = await response.json();
+        console.log('✅ Boundary index loaded:', boundaryIndex);
         
-        console.log('Boundaries file loaded:', Object.keys(boundaries));
+        // Initialize REGIONS with metadata from index
+        const allBoundaries = [
+            ...(boundaryIndex.misc || []),
+            ...(boundaryIndex.cities || []),
+            ...(boundaryIndex.regions || [])
+        ];
         
-        // Add polygon paths to existing regions AND add new Czech regions
-        for (const [key, boundaryData] of Object.entries(boundaries)) {
-            if (REGIONS[key]) {
-                // Update existing region with polygon data
-                console.log(`Processing existing ${key}:`, boundaryData.coordinates);
-                const geoCoords = boundaryData.coordinates[0];
-                const coords = geoCoords.map(coord => [coord[1], coord[0]]);
-                REGIONS[key].paths = [coords];
-                console.log(`✓ Loaded ${coords.length} points for ${key}`);
-            } else if (boundaryData.name_cz) {
-                // This is a Czech region - add it to REGIONS
-                console.log(`Adding new Czech region: ${key}`);
-                const geoCoords = boundaryData.coordinates[0];
-                const coords = geoCoords.map(coord => [coord[1], coord[0]]);
-                
-                // Calculate bounds from coordinates
-                const lats = coords.map(c => c[0]);
-                const lons = coords.map(c => c[1]);
-                
-                REGIONS[key] = {
-                    name: boundaryData.name,
-                    name_cz: boundaryData.name_cz,
-                    bounds: {
-                        minLat: Math.min(...lats),
-                        maxLat: Math.max(...lats),
-                        minLon: Math.min(...lons),
-                        maxLon: Math.max(...lons)
-                    },
-                    paths: [coords],
-                    isCzechRegion: true
+        for (const region of allBoundaries) {
+            if (!REGIONS[region.key]) {
+                REGIONS[region.key] = {
+                    name: region.name,
+                    name_cz: region.name_cz,
+                    file: region.file,
+                    isCzechRegion: !!region.name_cz
                 };
-                console.log(`✓ Added ${key}: ${boundaryData.name}`);
+            } else {
+                // Update existing regions with file reference
+                REGIONS[region.key].file = region.file;
             }
         }
         
-        console.log('✅ Region boundaries loaded successfully');
-        console.log('REGIONS after loading:', Object.keys(REGIONS));
+        console.log('✅ REGIONS initialized with metadata');
+        return boundaryIndex;
+    } catch (error) {
+        console.error('❌ Could not load boundary index:', error);
+        throw error;
+    }
+}
+
+// Load specific boundary file
+async function loadBoundaryFile(regionKey) {
+    const region = REGIONS[regionKey];
+    
+    // Already loaded
+    if (region.paths) {
+        console.log(`✓ Boundary already loaded for ${regionKey}`);
+        return;
+    }
+    
+    if (!region.file) {
+        console.warn(`⚠️  No boundary file defined for ${regionKey}`);
+        return;
+    }
+    
+    console.log(`🔄 Loading boundary for ${regionKey} from ${region.file}...`);
+    try {
+        const response = await fetch(`boundaries/${region.file}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const boundaryData = await response.json();
         
-        // Populate region buttons with Czech regions - will be called again from setupStartScreen with callback
+        // Process coordinates
+        const geoCoords = boundaryData.coordinates[0];
+        const coords = geoCoords.map(coord => [coord[1], coord[0]]);
+        
+        // Calculate bounds if not already set
+        if (!region.bounds || !region.bounds.minLat) {
+            const lats = coords.map(c => c[0]);
+            const lons = coords.map(c => c[1]);
+            region.bounds = {
+                minLat: Math.min(...lats),
+                maxLat: Math.max(...lats),
+                minLon: Math.min(...lons),
+                maxLon: Math.max(...lons)
+            };
+        }
+        
+        region.paths = [coords];
+        console.log(`✅ Loaded ${coords.length} points for ${regionKey}`);
+    } catch (error) {
+        console.error(`❌ Failed to load boundary for ${regionKey}:`, error);
+    }
+}
+
+// Legacy function for compatibility - now loads index
+async function loadRegionBoundaries() {
+    console.log('🔄 Starting to load region boundaries...');
+    try {
+        await loadBoundaryIndex();
+        console.log('✅ Region boundaries index loaded successfully');
+        console.log('REGIONS after loading:', Object.keys(REGIONS));
     } catch (error) {
         console.error('❌ Could not load region boundaries:', error);
         console.error('Error details:', error.message, error.stack);
@@ -719,7 +763,13 @@ function setupStartScreen() {
     });
 }
 
-function startGame() {
+async function startGame() {
+    // Load boundary for selected region if needed
+    if (gameState.selectedRegion && REGIONS[gameState.selectedRegion]) {
+        console.log(`🔄 Loading boundary for selected region: ${gameState.selectedRegion}`);
+        await loadBoundaryFile(gameState.selectedRegion);
+    }
+    
     // Hide start screen
     document.getElementById('startScreen').style.display = 'none';
     document.querySelector('header').style.display = 'flex';

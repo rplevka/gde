@@ -1,0 +1,112 @@
+{
+  "misc": [
+    {
+      "key": "czechia",
+      "name": "Czech Republic",
+      "file": "misc-czechia.json"
+    },
+    {
+      "key": "moravia",
+      "name": "Moravia",
+      "file": "misc-moravia.json"
+    },
+    {
+      "key": "bohemia",
+      "name": "Bohemia",
+      "file": "misc-bohemia.json"
+    }
+  ],
+  "cities": [
+    {
+      "key": "praha",
+      "name": "Prague",
+      "file": "city-praha.json",
+      "name_cz": "Praha"
+    },
+    {
+      "key": "brno",
+      "name": "Brno",
+      "file": "city-brno.json"
+    }
+  ],
+  "regions": [
+    {
+      "key": "stredocesky_kraj",
+      "name": "Central Bohemian Region",
+      "file": "region-stredocesky.json",
+      "name_cz": "Středočeský kraj"
+    },
+    {
+      "key": "jihocesky_kraj",
+      "name": "South Bohemian Region",
+      "file": "region-jihocesky.json",
+      "name_cz": "Jihočeský kraj"
+    },
+    {
+      "key": "plzeňsky_kraj",
+      "name": "Plzeň Region",
+      "file": "region-plzensky.json",
+      "name_cz": "Plzeňský kraj"
+    },
+    {
+      "key": "karlovarsky_kraj",
+      "name": "Karlovy Vary Region",
+      "file": "region-karlovarsky.json",
+      "name_cz": "Karlovarský kraj"
+    },
+    {
+      "key": "ústecky_kraj",
+      "name": "Ústí nad Labem Region",
+      "file": "region-ustecky.json",
+      "name_cz": "Ústecký kraj"
+    },
+    {
+      "key": "liberecky_kraj",
+      "name": "Liberec Region",
+      "file": "region-liberecky.json",
+      "name_cz": "Liberecký kraj"
+    },
+    {
+      "key": "kralovehradecky_kraj",
+      "name": "Hradec Králové Region",
+      "file": "region-kralovehradecky.json",
+      "name_cz": "Královéhradecký kraj"
+    },
+    {
+      "key": "pardubicky_kraj",
+      "name": "Pardubice Region",
+      "file": "region-pardubicky.json",
+      "name_cz": "Pardubický kraj"
+    },
+    {
+      "key": "kraj_vysocina",
+      "name": "Vysočina Region",
+      "file": "region-vysocina.json",
+      "name_cz": "Kraj Vysočina"
+    },
+    {
+      "key": "jihomoravsky_kraj",
+      "name": "South Moravian Region",
+      "file": "region-jihomoravsky.json",
+      "name_cz": "Jihomoravský kraj"
+    },
+    {
+      "key": "olomoucky_kraj",
+      "name": "Olomouc Region",
+      "file": "region-olomoucky.json",
+      "name_cz": "Olomoucký kraj"
+    },
+    {
+      "key": "zlinsky_kraj",
+      "name": "Zlín Region",
+      "file": "region-zlinsky.json",
+      "name_cz": "Zlínský kraj"
+    },
+    {
+      "key": "moravskoslezsky_kraj",
+      "name": "Moravian-Silesian Region",
+      "file": "region-moravskoslezsky.json",
+      "name_cz": "Moravskoslezský kraj"
+    }
+  ]
+}
