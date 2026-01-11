@@ -498,7 +498,7 @@ function saveCustomRegion(name, region) {
         } else {
             // Check limit
             if (regions.length >= MAX_SAVED_REGIONS) {
-                alert(`You can only save up to ${MAX_SAVED_REGIONS} custom regions. Please delete one first.`);
+                alert(t('alert.regionlimit', { max: MAX_SAVED_REGIONS }));
                 return false;
             }
             regions.push({ name, region });
@@ -1025,7 +1025,7 @@ function setupEventListeners() {
     // Game title click - return to start screen
     document.querySelector('.game-title').addEventListener('click', () => {
         if (gameState.gameStarted) {
-            if (confirm('Return to menu? Your current game progress will be lost.')) {
+            if (confirm(t('confirm.returntomenu'))) {
                 returnToStartScreen();
             }
         }
@@ -1053,7 +1053,7 @@ function setupEventListeners() {
     
     // Finish game button (for infinite mode)
     document.getElementById('finishGame').addEventListener('click', () => {
-        if (confirm('End the game and view your final score?')) {
+        if (confirm(t('confirm.endgame'))) {
             showFinalScore();
         }
     });
@@ -1327,7 +1327,7 @@ function showTimeOutResult() {
         }, 5000);
     } else {
         // Not last round - show next round button
-        nextBtn.textContent = 'Next Round';
+        nextBtn.textContent = t('btn.next');
         nextBtn.style.display = 'inline-block';
         minimizeBtn.style.display = 'inline-block';
     }
@@ -1357,7 +1357,7 @@ async function startNewRound() {
     const submitBtn = document.getElementById('submitGuess');
     submitBtn.style.display = 'inline-block';
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Submit';
+    submitBtn.textContent = t('btn.submit');
     const nextRoundBtn = document.getElementById('nextRound');
     nextRoundBtn.style.display = 'none';
     nextRoundBtn.disabled = false; // Re-enable for next time
@@ -1376,13 +1376,13 @@ async function startNewRound() {
     if (!region) {
         console.error('❌ Region not found:', gameState.selectedRegion);
         console.error('Available regions:', Object.keys(REGIONS));
-        alert('Error: Selected region not found. Please select a different region.');
+        alert(t('alert.regionnotfound'));
         return;
     }
     
     if (!region.bounds) {
         console.error('❌ Region bounds not found for:', gameState.selectedRegion, region);
-        alert('Error: Region bounds not available. Please select a different region.');
+        alert(t('alert.boundsnotfound'));
         return;
     }
     
@@ -1821,7 +1821,7 @@ function showRoundResult(result) {
             nextRoundBtn.style.display = 'none';
         } else {
             nextRoundBtn.style.display = 'inline-block';
-            nextRoundBtn.textContent = 'Next Round';
+            nextRoundBtn.textContent = t('btn.next');
         }
         minimizeBtn.style.display = 'inline-block';
     } else if (gameState.currentRound < CONFIG.TOTAL_ROUNDS) {
@@ -1830,7 +1830,7 @@ function showRoundResult(result) {
             nextRoundBtn.style.display = 'none';
         } else {
             nextRoundBtn.style.display = 'inline-block';
-            nextRoundBtn.textContent = 'Next Round';
+            nextRoundBtn.textContent = t('btn.next');
         }
         minimizeBtn.style.display = 'inline-block';
     } else {
@@ -1839,7 +1839,7 @@ function showRoundResult(result) {
             nextRoundBtn.style.display = 'none';
         } else {
             nextRoundBtn.style.display = 'inline-block';
-            nextRoundBtn.textContent = 'View Final Score';
+            nextRoundBtn.textContent = t('result.viewfinal');
         }
         minimizeBtn.style.display = 'none';
     }
@@ -1907,7 +1907,7 @@ function resetGame() {
 
     // Reset UI
     document.getElementById('submitGuess').disabled = true;
-    document.getElementById('submitGuess').textContent = 'Place your guess on the map';
+    document.getElementById('submitGuess').textContent = t('btn.submit.placeholder');
     document.getElementById('nextRound').style.display = 'none';
 
     // Start new game
@@ -2078,7 +2078,7 @@ function displaySavedCustomRegions() {
         deleteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             
-            if (confirm(`Delete custom region "${name}"?`)) {
+            if (confirm(t('confirm.deleteregion', { name }))) {
                 deleteCustomRegion(name);
                 displaySavedCustomRegions();
                 
@@ -2293,13 +2293,13 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
             const regionName = document.getElementById('customRegionName').value.trim();
             
             if (!regionName) {
-                alert('Please enter a name for your custom region.');
+                alert(t('alert.entername'));
                 return;
             }
             
             // Validate name length
             if (regionName.length > 30) {
-                alert('Region name must be 30 characters or less.');
+                alert(t('alert.nametoolong'));
                 return;
             }
             

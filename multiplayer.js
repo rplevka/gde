@@ -79,7 +79,7 @@ function setupMultiplayerUI() {
         const nick = document.getElementById('playerNick').value.trim() || 'Player';
         
         if (!code) {
-            alert('Please enter a session code');
+            alert(t('mp.entercode'));
             return;
         }
         
@@ -107,7 +107,7 @@ function setupMultiplayerUI() {
     document.getElementById('copySessionCode').addEventListener('click', () => {
         const code = document.getElementById('lobbySessionCode').textContent;
         navigator.clipboard.writeText(code).then(() => {
-            alert('Session code copied to clipboard!');
+            alert(t('mp.codecopied'));
         });
     });
 }
@@ -130,13 +130,13 @@ function connectWebSocket() {
     
     ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        alert('Connection error. Please try again.');
+        alert(t('mp.connectionerror'));
     };
     
     ws.onclose = () => {
         console.log('WebSocket disconnected');
         if (multiplayerState.isMultiplayer) {
-            alert('Connection lost. Returning to menu.');
+            alert(t('mp.connectionlost'));
             returnToModeSelection();
         }
     };
@@ -573,7 +573,7 @@ function showPlayerSubmittedNotification(playerData) {
     // Create notification element
     const notification = document.createElement('div');
     notification.className = 'player-submitted-notification';
-    notification.innerHTML = `${playerData.icon} <strong>${playerData.nick}</strong> submitted their guess!`;
+    notification.innerHTML = `${playerData.icon} <strong>${playerData.nick}</strong> ${t('mp.submitted')}`;
     
     // Add to header
     const header = document.querySelector('header');
@@ -847,8 +847,8 @@ function handleGameFinished(data) {
     const winnerAnnouncement = document.getElementById('winnerAnnouncement');
     winnerAnnouncement.innerHTML = `
         <div style="font-size: 48px; margin-bottom: 10px;">${winner.icon}</div>
-        <div>${winner.nick} wins!</div>
-        <div style="font-size: 18px; color: #888; margin-top: 5px;">with ${winner.score} points</div>
+        <div>${t('mp.wins', { player: winner.nick })}</div>
+        <div style="font-size: 18px; color: #888; margin-top: 5px;">${t('mp.withpoints', { score: winner.score })}</div>
     `;
     
     // Build final scoreboard
