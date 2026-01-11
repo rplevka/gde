@@ -1937,8 +1937,13 @@ function updateScoreDisplay() {
 }
 
 function returnToStartScreen() {
-    // Hide final score modal
+    // Stop any running timer
+    stopTimer();
+    
+    // Hide all modals
     document.getElementById('finalScoreModal').style.display = 'none';
+    document.getElementById('resultModal').style.display = 'none';
+    document.getElementById('restoreResult').style.display = 'none';
     
     // Hide game elements
     document.querySelector('header').style.display = 'none';
@@ -1964,13 +1969,26 @@ function returnToStartScreen() {
         gameState.resultMap = null;
     }
     
-    // Reset game state
+    // Reset game state completely
     gameState.currentRound = 1;
     gameState.totalScore = 0;
     gameState.rounds = [];
     gameState.guessLocation = null;
     gameState.guessMarker = null;
     gameState.gameStarted = false;
+    gameState.currentLocation = null;
+    gameState.originalLocation = null;
+    gameState.roundSubmitted = false;
+    gameState.timer = null;
+    gameState.timeRemaining = 0;
+    gameState.currentPanoramaPosition = null;
+    
+    // Reset UI elements
+    document.getElementById('submitGuess').disabled = true;
+    document.getElementById('submitGuess').textContent = t('btn.submit');
+    document.getElementById('nextRound').style.display = 'none';
+    document.getElementById('nextRound').disabled = false;
+    document.getElementById('resetLocationBtn').style.display = 'none';
     
     // Show start screen
     document.getElementById('startScreen').style.display = 'flex';
