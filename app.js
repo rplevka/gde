@@ -416,7 +416,9 @@ let gameState = {
     },
     originalLocation: null, // Store the original start location for explorer mode
     timer: null, // Timer interval
-    timeRemaining: 0 // Seconds remaining in current round
+    timeRemaining: 0, // Seconds remaining in current round
+    startingNewRound: false, // Prevent multiple simultaneous startNewRound calls
+    eventListenersSetup: false // Prevent duplicate event listener registration
 };
 
 // Get current panorama position (uses stored position from pano-place events)
@@ -630,9 +632,9 @@ function showPanoramaErrorModal() {
 
 function setupPanoramaErrorHandlers() {
     // Retry button - try to start the round again
-    document.getElementById('retryPanorama').addEventListener('click', () => {
+    document.getElementById('retryPanorama').addEventListener('click', async () => {
         document.getElementById('panoramaErrorModal').style.display = 'none';
-        startNewRound();
+        await startNewRound();
     });
     
     // Cancel button - return to start screen
@@ -910,7 +912,13 @@ function setupStartScreen() {
     }
     
     // Start game button
-    document.getElementById('startGameBtn').addEventListener('click', () => {
+    document.getElementById('startGameBtn').addEventListener('click', async () => {
+        const startBtn = document.getElementById('startGameBtn');
+        
+        // Prevent double-click
+        if (startBtn.disabled) return;
+        startBtn.disabled = true;
+        
         // Check if multiplayer mode
         if (typeof multiplayerState !== 'undefined' && multiplayerState.isMultiplayer) {
             // In multiplayer, only owner can start
@@ -925,7 +933,7 @@ function setupStartScreen() {
                 gameState.selectedRegion = selectedRegion;
             }
             gameState.selectedMode = selectedMode;
-            startGame();
+            await startGame();
         }
     });
 }
@@ -955,27 +963,37 @@ async function startGame() {
     setupEventListeners();
 
     // Start first round
-    startNewRound();
+    await startNewRound();
 }
 
 function setupEventListeners() {
-    // Map layer selection
     const mapLayerSelect = document.getElementById('mapLayerSelect');
+    
+    // Apply map layer preference (needs to be done each game start)
+    if (!gameState.preferences.mapLayers) {
+        mapLayerSelect.style.display = 'none';
+    } else {
+        mapLayerSelect.style.display = '';
+    }
+    
+    // Prevent duplicate event listener registration
+    if (gameState.eventListenersSetup) {
+        console.log('Event listeners already setup, skipping');
+        return;
+    }
+    gameState.eventListenersSetup = true;
+    
+    // Map layer selection
     mapLayerSelect.addEventListener('change', (e) => {
         gameState.currentMapLayer = e.target.value;
         updateMapLayer();
     });
-    
-    // Apply map layer preference
-    if (!gameState.preferences.mapLayers) {
-        mapLayerSelect.style.display = 'none';
-    }
 
     // Submit guess button
     document.getElementById('submitGuess').addEventListener('click', submitGuess);
 
     // Next round button
-    document.getElementById('nextRound').addEventListener('click', () => {
+    document.getElementById('nextRound').addEventListener('click', async () => {
         // Prevent double-clicking
         const nextRoundBtn = document.getElementById('nextRound');
         if (nextRoundBtn.disabled) return;
@@ -995,7 +1013,7 @@ function setupEventListeners() {
         } else {
             // Single player - start next round directly
             gameState.currentRound++;
-            startNewRound();
+            await startNewRound();
         }
     });
 
@@ -1340,130 +1358,143 @@ function showTimeOutResult() {
 }
 
 async function startNewRound() {
-    // Reset round state
-    gameState.roundSubmitted = false;
-    
-    // Clear shared location for new round in multiplayer
-    if (gameState.isMultiplayer && typeof multiplayerState !== 'undefined') {
-        multiplayerState.sharedLocation = null;
-        multiplayerState.waitingForLocation = false;
-    }
-    
-    // Stop any existing timer
-    stopTimer();
-    
-    // Update UI
-    updateScoreDisplay();
-    const submitBtn = document.getElementById('submitGuess');
-    submitBtn.style.display = 'inline-block';
-    submitBtn.disabled = true;
-    submitBtn.textContent = t('btn.submit');
-    const nextRoundBtn = document.getElementById('nextRound');
-    nextRoundBtn.style.display = 'none';
-    nextRoundBtn.disabled = false; // Re-enable for next time
-    
-    // Show/hide finish game button based on infinite mode
-    const finishGameBtn = document.getElementById('finishGame');
-    if (finishGameBtn) {
-        finishGameBtn.style.display = gameState.preferences.infiniteMode ? 'inline-block' : 'none';
-    }
-
-    // Reset map view to region bounds
-    const region = gameState.selectedRegion === 'custom' && gameState.customRegion 
-        ? gameState.customRegion 
-        : REGIONS[gameState.selectedRegion];
-    
-    if (!region) {
-        console.error('❌ Region not found:', gameState.selectedRegion);
-        console.error('Available regions:', Object.keys(REGIONS));
-        alert(t('alert.regionnotfound'));
+    // Prevent multiple simultaneous executions
+    if (gameState.startingNewRound) {
+        console.warn('⚠️ startNewRound already in progress, skipping');
         return;
     }
+    gameState.startingNewRound = true;
     
-    if (!region.bounds) {
-        console.error('❌ Region bounds not found for:', gameState.selectedRegion, region);
-        alert(t('alert.boundsnotfound'));
-        return;
-    }
+    try {
+        // Reset round state
+        gameState.roundSubmitted = false;
     
-    const bounds = L.latLngBounds(
-        [region.bounds.minLat, region.bounds.minLon],
-        [region.bounds.maxLat, region.bounds.maxLon]
-    );
-    gameState.map.fitBounds(bounds, { padding: [20, 20] });
-
-    // Clear previous guess
-    if (gameState.guessMarker) {
-        gameState.map.removeLayer(gameState.guessMarker);
-        gameState.guessMarker = null;
-    }
-    gameState.guessLocation = null;
-
-    // Destroy previous panorama
-    if (gameState.panoramaInstance) {
-        gameState.panoramaInstance.destroy();
-        gameState.panoramaInstance = null;
-    }
-
-    // Find a random location with panorama
-    let location;
+        // Clear shared location for new round in multiplayer
+        if (gameState.isMultiplayer && typeof multiplayerState !== 'undefined') {
+            multiplayerState.sharedLocation = null;
+            multiplayerState.waitingForLocation = false;
+        }
     
-    // In multiplayer, wait for server to provide location
-    if (gameState.isMultiplayer && typeof getSharedLocation !== 'undefined') {
-        console.log('Multiplayer mode: requesting location from server...');
-        
-        // Request location from server (will wait for response)
-        location = await getSharedLocation();
-        
-        if (!location) {
-            console.error('Failed to get location from server');
-            showPanoramaErrorModal();
+        // Stop any existing timer
+        stopTimer();
+    
+        // Update UI
+        updateScoreDisplay();
+        const submitBtn = document.getElementById('submitGuess');
+        submitBtn.style.display = 'inline-block';
+        submitBtn.disabled = true;
+        submitBtn.textContent = t('btn.submit');
+        const nextRoundBtn = document.getElementById('nextRound');
+        nextRoundBtn.style.display = 'none';
+        nextRoundBtn.disabled = false; // Re-enable for next time
+    
+        // Show/hide finish game button based on infinite mode
+        const finishGameBtn = document.getElementById('finishGame');
+        if (finishGameBtn) {
+            finishGameBtn.style.display = gameState.preferences.infiniteMode ? 'inline-block' : 'none';
+        }
+
+        // Reset map view to region bounds
+        const region = gameState.selectedRegion === 'custom' && gameState.customRegion 
+            ? gameState.customRegion 
+            : REGIONS[gameState.selectedRegion];
+    
+        if (!region) {
+            console.error('❌ Region not found:', gameState.selectedRegion);
+            console.error('Available regions:', Object.keys(REGIONS));
+            alert(t('alert.regionnotfound'));
             return;
         }
-        
-        console.log('Received location from server:', location);
-    } else {
-        // Single player - just find a location
-        location = await findRandomLocationWithPanorama();
-        if (!location) {
-            showPanoramaErrorModal();
+    
+        if (!region.bounds) {
+            console.error('❌ Region bounds not found for:', gameState.selectedRegion, region);
+            alert(t('alert.boundsnotfound'));
             return;
         }
-    }
-
-    gameState.currentLocation = location;
-    gameState.originalLocation = { lat: location.lat, lon: location.lon }; // Store original location
-    gameState.currentPanoramaPosition = { lat: location.lat, lon: location.lon }; // Initialize current position
     
-    // Show/hide reset button based on mode
-    const resetBtn = document.getElementById('resetLocationBtn');
-    if (gameState.selectedMode === 'explorer') {
-        resetBtn.style.display = 'block';
-    } else {
-        resetBtn.style.display = 'none';
-    }
+        const bounds = L.latLngBounds(
+            [region.bounds.minLat, region.bounds.minLon],
+            [region.bounds.maxLat, region.bounds.maxLon]
+        );
+        gameState.map.fitBounds(bounds, { padding: [20, 20] });
 
-    // Load panorama - retry if it fails
-    const loaded = await loadPanorama(location.lat, location.lon);
+        // Clear previous guess
+        if (gameState.guessMarker) {
+            gameState.map.removeLayer(gameState.guessMarker);
+            gameState.guessMarker = null;
+        }
+        gameState.guessLocation = null;
+
+        // Destroy previous panorama
+        if (gameState.panoramaInstance) {
+            gameState.panoramaInstance.destroy();
+            gameState.panoramaInstance = null;
+        }
+
+        // Find a random location with panorama
+        let location;
     
-    if (!loaded) {
-        // If panorama failed to load, try finding another location
-        console.log('Panorama failed to load, trying another location...');
+        // In multiplayer, wait for server to provide location
+        if (gameState.isMultiplayer && typeof getSharedLocation !== 'undefined') {
+            console.log('Multiplayer mode: requesting location from server...');
         
-        // In multiplayer, notify server that location failed so everyone retries together
-        if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
-            sendWS('locationFailed', {
-                lat: location.lat,
-                lon: location.lon
-            });
-            // Server will broadcast retry to all players
+            // Request location from server (will wait for response)
+            location = await getSharedLocation();
+        
+            if (!location) {
+                console.error('Failed to get location from server');
+                showPanoramaErrorModal();
+                return;
+            }
+        
+            console.log('Received location from server:', location);
         } else {
-            // Single player - retry directly
-            await startNewRound();
+            // Single player - just find a location
+            location = await findRandomLocationWithPanorama();
+            if (!location) {
+                showPanoramaErrorModal();
+                return;
+            }
         }
-    } else {
-        // Start timer after panorama loads successfully
-        startTimer();
+
+        gameState.currentLocation = location;
+        gameState.originalLocation = { lat: location.lat, lon: location.lon }; // Store original location
+        gameState.currentPanoramaPosition = { lat: location.lat, lon: location.lon }; // Initialize current position
+    
+        // Show/hide reset button based on mode
+        const resetBtn = document.getElementById('resetLocationBtn');
+        if (gameState.selectedMode === 'explorer') {
+            resetBtn.style.display = 'block';
+        } else {
+            resetBtn.style.display = 'none';
+        }
+
+        // Load panorama - retry if it fails
+        const loaded = await loadPanorama(location.lat, location.lon);
+    
+        if (!loaded) {
+            // If panorama failed to load, try finding another location
+            console.log('Panorama failed to load, trying another location...');
+        
+            // In multiplayer, notify server that location failed so everyone retries together
+            if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
+                sendWS('locationFailed', {
+                    lat: location.lat,
+                    lon: location.lon
+                });
+                // Server will broadcast retry to all players
+            } else {
+                // Single player - retry directly
+                gameState.startingNewRound = false; // Allow retry
+                await startNewRound();
+            }
+        } else {
+            // Start timer after panorama loads successfully
+            startTimer();
+        }
+    } finally {
+        // Always reset the flag when done (success, error, or early return)
+        gameState.startingNewRound = false;
     }
 }
 
@@ -1656,6 +1687,12 @@ function placeGuess(lat, lon) {
 
 function submitGuess() {
     if (!gameState.guessLocation) {
+        return;
+    }
+    
+    // Prevent double submission
+    if (gameState.roundSubmitted) {
+        console.log('Round already submitted, ignoring');
         return;
     }
     
@@ -1886,7 +1923,7 @@ function showFinalScore() {
     document.getElementById('finalScoreModal').style.display = 'flex';
 }
 
-function resetGame() {
+async function resetGame() {
     // Reset game state
     gameState.currentRound = 1;
     gameState.totalScore = 0;
@@ -1911,7 +1948,7 @@ function resetGame() {
     document.getElementById('nextRound').style.display = 'none';
 
     // Start new game
-    startNewRound();
+    await startNewRound();
 }
 
 function updateScoreDisplay() {
@@ -1982,6 +2019,7 @@ function returnToStartScreen() {
     gameState.timer = null;
     gameState.timeRemaining = 0;
     gameState.currentPanoramaPosition = null;
+    gameState.startingNewRound = false;
     
     // Reset UI elements
     document.getElementById('submitGuess').disabled = true;
