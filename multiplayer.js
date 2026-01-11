@@ -322,11 +322,11 @@ function toggleReady() {
     
     const btn = document.getElementById('toggleReadyBtn');
     if (multiplayerState.isReady) {
-        btn.textContent = 'Not Ready';
+        btn.textContent = t('mp.notready');
         btn.classList.remove('btn-primary');
         btn.classList.add('btn-secondary');
     } else {
-        btn.textContent = 'Ready';
+        btn.textContent = t('mp.ready');
         btn.classList.remove('btn-secondary');
         btn.classList.add('btn-primary');
     }

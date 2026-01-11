@@ -187,6 +187,7 @@ const translations = {
         'settings.timetrial': 'Time Trial Mode',
         'settings.timetrial.desc': 'Add a countdown timer to each round',
         'settings.timelimit': 'Time Limit (seconds):',
+        'settings.timelimit.desc': 'How long for each round',
         'settings.infinite': 'Infinite Mode',
         'settings.infinite.desc': 'Play endless rounds',
         'settings.close': 'Close',
@@ -203,6 +204,7 @@ const translations = {
         'draw.name': 'Region Name:',
         'draw.name.placeholder': 'Enter a name for this region',
         'draw.slots': '{used}/{total} slots used',
+        'draw.savehint': 'Save up to 5 custom regions to reuse later',
         
         // Panorama Error
         'error.panorama.title': 'No Panorama Found',
@@ -225,6 +227,7 @@ const translations = {
         'mp.lobby': 'Lobby',
         'mp.waiting': 'Waiting for players...',
         'mp.ready': 'Ready',
+        'mp.notready': 'Not Ready',
         'mp.startgame': 'Start Game',
         'mp.scoreboard': 'Scoreboard',
         'mp.entercode': 'Please enter a session code',
@@ -435,6 +438,7 @@ const translations = {
         'settings.timetrial': 'Hra na čas',
         'settings.timetrial.desc': 'Přidat časový limit do každého kola',
         'settings.timelimit': 'Časový limit (sekundy):',
+        'settings.timelimit.desc': 'Kolik času máš na každé kolo',
         'settings.infinite': 'Nekonečný režim',
         'settings.infinite.desc': 'Hraj bez omezení počtu kol',
         'settings.close': 'Zavřít',
@@ -451,6 +455,7 @@ const translations = {
         'draw.name': 'Název regionu:',
         'draw.name.placeholder': 'Zadej název regionu',
         'draw.slots': '{used}/{total} slotů použito',
+        'draw.savehint': 'Ulož až 5 vlastních regionů pro pozdější použití',
         
         // Panorama Error
         'error.panorama.title': 'Panorama nenalezeno',
@@ -473,6 +478,7 @@ const translations = {
         'mp.lobby': 'Čekárna',
         'mp.waiting': 'Čeká se na hráče...',
         'mp.ready': 'Připraven',
+        'mp.notready': 'Nejsem připraven',
         'mp.startgame': 'Začít hru',
         'mp.scoreboard': 'Žebříček',
         'mp.entercode': 'Zadej kód hry',
