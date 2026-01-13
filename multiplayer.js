@@ -90,7 +90,6 @@ function setupMultiplayerUI() {
     // Cancel multiplayer
     document.getElementById('cancelMultiplayer').addEventListener('click', () => {
         document.getElementById('multiplayerModal').style.display = 'none';
-        document.getElementById('modeSelectionScreen').style.display = 'flex';
     });
     
     // Toggle ready
