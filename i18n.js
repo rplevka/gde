@@ -188,9 +188,16 @@ const translations = {
         'settings.timetrial.desc': 'Add a countdown timer to each round',
         'settings.timelimit': 'Time Limit (seconds):',
         'settings.timelimit.desc': 'How long for each round',
+        'settings.flashmode': 'Flash Mode',
+        'settings.flashmode.desc': 'Panorama shown briefly, then hidden - test your memory!',
+        'settings.flashduration': 'View Time (seconds):',
+        'settings.flashduration.desc': 'How long to see the panorama',
         'settings.infinite': 'Infinite Mode',
         'settings.infinite.desc': 'Play endless rounds',
         'settings.close': 'Close',
+        
+        // Flash Mode
+        'flash.remember': 'Remember what you saw!',
         
         // Draw Region Modal
         'draw.title': 'Draw Custom Region',
@@ -439,9 +446,16 @@ const translations = {
         'settings.timetrial.desc': 'Přidat časový limit do každého kola',
         'settings.timelimit': 'Časový limit (sekundy):',
         'settings.timelimit.desc': 'Kolik času máš na každé kolo',
+        'settings.flashmode': 'Bleskovka',
+        'settings.flashmode.desc': 'Panorama se ukáže jen na chvíli - otestuj svou paměť!',
+        'settings.flashduration': 'Doba zobrazení (sekundy):',
+        'settings.flashduration.desc': 'Jak dlouho uvidíš panorama',
         'settings.infinite': 'Nekonečný režim',
         'settings.infinite.desc': 'Hraj bez omezení počtu kol',
         'settings.close': 'Zavřít',
+        
+        // Flash Mode
+        'flash.remember': 'Vzpomeň si, co jsi viděl!',
         
         // Draw Region Modal
         'draw.title': 'Vlastní region',

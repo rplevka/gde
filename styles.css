@@ -488,27 +488,44 @@ background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
 color: white;
 }
 
-/* Restore Result Button */
-.restore-btn {
+/* Minimized Controls Container */
+.minimized-controls {
+    display: none;
     position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
+    gap: 10px;
+    z-index: 500;
+}
+
+/* Restore Result Button */
+.restore-btn {
+    position: relative;
     padding: 12px 24px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
+    border-radius: 8px;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    z-index: 500;
     transition: all 0.3s ease;
 }
 
 .restore-btn:hover {
-    transform: translateX(-50%) translateY(-2px);
+    transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
+}
+
+.restore-btn-next {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
+}
+
+.restore-btn-next:hover {
+    box-shadow: 0 6px 16px rgba(17, 153, 142, 0.6);
 }
 
 /* Reset Location Button */

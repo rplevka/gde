@@ -810,7 +810,7 @@ function handleStartNextRound(data) {
     
     // Close result modal
     document.getElementById('resultModal').style.display = 'none';
-    document.getElementById('restoreResult').style.display = 'none';
+    document.getElementById('minimizedControls').style.display = 'none';
     
     // Hide countdown
     const countdownDiv = document.getElementById('multiplayerCountdown');

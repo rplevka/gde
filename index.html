@@ -209,9 +209,14 @@
         </div>
 
         <!-- Restore Result Button (shown when minimized) -->
-        <button id="restoreResult" class="restore-btn" style="display: none;" data-i18n="btn.restore">
-            📊 Show Results
-        </button>
+        <div id="minimizedControls" class="minimized-controls">
+            <button id="restoreResult" class="restore-btn" data-i18n="btn.restore">
+                📊 Show Results
+            </button>
+            <button id="quickNextRound" class="restore-btn restore-btn-next" data-i18n="btn.next">
+                ▶️ Next Round
+            </button>
+        </div>
 
         <!-- Multiplayer Winner Modal -->
         <div id="winnerModal" class="modal" style="display: none;">
@@ -305,6 +310,25 @@
                             <p data-i18n="settings.timelimit.desc">How long for each round</p>
                         </div>
                         <input type="number" id="pref-timeLimit" min="10" max="600" value="120" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
+                    </div>
+                    
+                    <div class="preference-item">
+                        <div class="preference-info">
+                            <strong data-i18n="settings.flashmode">⚡ Flash Mode</strong>
+                            <p data-i18n="settings.flashmode.desc">Panorama shown briefly, then hidden - test your memory!</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="pref-flashMode">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="preference-item" id="flashModeSettings" style="display: none;">
+                        <div class="preference-info">
+                            <strong data-i18n="settings.flashduration">👁️ View Time (seconds)</strong>
+                            <p data-i18n="settings.flashduration.desc">How long to see the panorama</p>
+                        </div>
+                        <input type="number" id="pref-flashDuration" min="0.1" max="10" step="0.1" value="0.5" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
                     </div>
                     
                     <div class="preference-item">

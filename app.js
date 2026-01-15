@@ -412,7 +412,9 @@ let gameState = {
         targetOriginal: true, // Score based on original location (true) or current position (false)
         timeTrial: false, // Enable time trial mode
         timeLimit: 120, // Time limit per round in seconds
-        infiniteMode: false // Infinite mode - play until user decides to end
+        infiniteMode: false, // Infinite mode - play until user decides to end
+        flashMode: false, // Flash mode - show panorama briefly then hide
+        flashDuration: 0.5 // How long to show panorama in seconds
     },
     originalLocation: null, // Store the original start location for explorer mode
     timer: null, // Timer interval
@@ -675,10 +677,15 @@ function setupDifficultyPreferences() {
     document.getElementById('pref-targetOriginal').checked = gameState.preferences.targetOriginal;
     document.getElementById('pref-timeTrial').checked = gameState.preferences.timeTrial;
     document.getElementById('pref-timeLimit').value = gameState.preferences.timeLimit;
+    document.getElementById('pref-flashMode').checked = gameState.preferences.flashMode;
+    document.getElementById('pref-flashDuration').value = gameState.preferences.flashDuration;
     document.getElementById('pref-infiniteMode').checked = gameState.preferences.infiniteMode;
     
     // Show/hide time trial settings based on loaded preference
     document.getElementById('timeTrialSettings').style.display = gameState.preferences.timeTrial ? 'flex' : 'none';
+    
+    // Show/hide flash mode settings based on loaded preference
+    document.getElementById('flashModeSettings').style.display = gameState.preferences.flashMode ? 'flex' : 'none';
     
     // Open difficulty modal
     document.getElementById('difficultyPrefsBtn').addEventListener('click', () => {
@@ -731,6 +738,18 @@ function setupDifficultyPreferences() {
     
     document.getElementById('pref-timeLimit').addEventListener('change', (e) => {
         gameState.preferences.timeLimit = parseInt(e.target.value);
+        savePreferencesToLocalStorage();
+    });
+    
+    document.getElementById('pref-flashMode').addEventListener('change', (e) => {
+        gameState.preferences.flashMode = e.target.checked;
+        savePreferencesToLocalStorage();
+        // Show/hide flash duration input
+        document.getElementById('flashModeSettings').style.display = e.target.checked ? 'flex' : 'none';
+    });
+    
+    document.getElementById('pref-flashDuration').addEventListener('change', (e) => {
+        gameState.preferences.flashDuration = parseFloat(e.target.value);
         savePreferencesToLocalStorage();
     });
     
@@ -999,9 +1018,9 @@ function setupEventListeners() {
         if (nextRoundBtn.disabled) return;
         nextRoundBtn.disabled = true;
 
-        // Close result modal and restore button
+        // Close result modal and minimized controls
         document.getElementById('resultModal').style.display = 'none';
-        document.getElementById('restoreResult').style.display = 'none';
+        document.getElementById('minimizedControls').style.display = 'none';
         
         // Check if game is complete (not in infinite mode)
         if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
@@ -1020,13 +1039,44 @@ function setupEventListeners() {
     // Minimize result modal
     document.getElementById('minimizeResult').addEventListener('click', () => {
         document.getElementById('resultModal').style.display = 'none';
-        document.getElementById('restoreResult').style.display = 'block';
+        const minimizedControls = document.getElementById('minimizedControls');
+        minimizedControls.style.display = 'flex';
+        
+        // Show/hide quick next round button based on game state
+        const quickNextBtn = document.getElementById('quickNextRound');
+        if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
+            quickNextBtn.style.display = 'none'; // Last round - no next round
+        } else {
+            quickNextBtn.style.display = 'block';
+        }
     });
 
     // Restore result modal
     document.getElementById('restoreResult').addEventListener('click', () => {
         document.getElementById('resultModal').style.display = 'flex';
-        document.getElementById('restoreResult').style.display = 'none';
+        document.getElementById('minimizedControls').style.display = 'none';
+    });
+    
+    // Quick next round button (skip showing results again)
+    document.getElementById('quickNextRound').addEventListener('click', async () => {
+        const quickNextBtn = document.getElementById('quickNextRound');
+        if (quickNextBtn.disabled) return;
+        quickNextBtn.disabled = true;
+        
+        // Hide minimized controls
+        document.getElementById('minimizedControls').style.display = 'none';
+        
+        // Check if game is complete
+        if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
+            showFinalScore();
+        } else if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
+            sendWS('nextRound', {});
+        } else {
+            gameState.currentRound++;
+            await startNewRound();
+        }
+        
+        quickNextBtn.disabled = false;
     });
 
     // Play again button
@@ -1257,6 +1307,9 @@ function handleTimeOut() {
     // Don't process if round already submitted
     if (gameState.roundSubmitted) return;
     
+    // Reveal panorama if flash mode was active
+    hideFlashOverlay();
+    
     // Mark round as submitted
     gameState.roundSubmitted = true;
     
@@ -1275,6 +1328,43 @@ function handleTimeOut() {
     
     // Show result
     showTimeOutResult();
+}
+
+// Flash mode functions
+function showFlashOverlay() {
+    let overlay = document.getElementById('flashOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'flashOverlay';
+        overlay.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+        `;
+        document.getElementById('panoramaContainer').appendChild(overlay);
+    }
+    
+    // Use dark or light background based on prefers-color-scheme
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    overlay.style.backgroundColor = isDarkMode ? '#1a1a2e' : '#f5f5f5';
+    overlay.style.color = isDarkMode ? '#e0e0e0' : '#333';
+    overlay.innerHTML = `<span>🧠 ${t('flash.remember')}</span>`;
+    overlay.style.display = 'flex';
+}
+
+function hideFlashOverlay() {
+    const overlay = document.getElementById('flashOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
 }
 
 function showTimeOutResult() {
@@ -1368,6 +1458,9 @@ async function startNewRound() {
     try {
         // Reset round state
         gameState.roundSubmitted = false;
+    
+        // Hide flash overlay from previous round
+        hideFlashOverlay();
     
         // Clear shared location for new round in multiplayer
         if (gameState.isMultiplayer && typeof multiplayerState !== 'undefined') {
@@ -1491,6 +1584,13 @@ async function startNewRound() {
         } else {
             // Start timer after panorama loads successfully
             startTimer();
+            
+            // Flash mode: hide panorama after brief display
+            if (gameState.preferences.flashMode) {
+                setTimeout(() => {
+                    showFlashOverlay();
+                }, gameState.preferences.flashDuration * 1000);
+            }
         }
     } finally {
         // Always reset the flag when done (success, error, or early return)
@@ -1698,6 +1798,9 @@ function submitGuess() {
     
     // Stop timer
     stopTimer();
+    
+    // Reveal panorama if flash mode was active
+    hideFlashOverlay();
     
     // Mark round as submitted
     gameState.roundSubmitted = true;
@@ -1977,10 +2080,13 @@ function returnToStartScreen() {
     // Stop any running timer
     stopTimer();
     
+    // Hide flash overlay if visible
+    hideFlashOverlay();
+    
     // Hide all modals
     document.getElementById('finalScoreModal').style.display = 'none';
     document.getElementById('resultModal').style.display = 'none';
-    document.getElementById('restoreResult').style.display = 'none';
+    document.getElementById('minimizedControls').style.display = 'none';
     
     // Hide game elements
     document.querySelector('header').style.display = 'none';
