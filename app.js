@@ -1037,7 +1037,7 @@ function setupEventListeners() {
     });
 
     // Minimize result modal
-    document.getElementById('minimizeResult').addEventListener('click', () => {
+    function minimizeResultModal() {
         document.getElementById('resultModal').style.display = 'none';
         const minimizedControls = document.getElementById('minimizedControls');
         minimizedControls.style.display = 'flex';
@@ -1048,6 +1048,16 @@ function setupEventListeners() {
             quickNextBtn.style.display = 'none'; // Last round - no next round
         } else {
             quickNextBtn.style.display = 'block';
+        }
+    }
+    
+    document.getElementById('minimizeResult').addEventListener('click', minimizeResultModal);
+    
+    // Click outside modal to minimize (on backdrop)
+    document.getElementById('resultModal').addEventListener('click', (e) => {
+        // Only minimize if clicking on the modal backdrop, not the content
+        if (e.target.id === 'resultModal') {
+            minimizeResultModal();
         }
     });
 
