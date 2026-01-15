@@ -1433,10 +1433,10 @@ function showTimeOutResult() {
     const nextBtn = document.getElementById('nextRound');
     const minimizeBtn = document.getElementById('minimizeResult');
     
-    if (gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
-        // Last round - hide buttons and auto-show final score
+    if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
+        // Last round - hide next button but keep minimize visible
         nextBtn.style.display = 'none';
-        minimizeBtn.style.display = 'none';
+        minimizeBtn.style.display = 'inline-block';
         
         // Auto-show final score after a delay
         setTimeout(() => {
@@ -1991,7 +1991,7 @@ function showRoundResult(result) {
             nextRoundBtn.style.display = 'inline-block';
             nextRoundBtn.textContent = t('result.viewfinal');
         }
-        minimizeBtn.style.display = 'none';
+        minimizeBtn.style.display = 'inline-block';
     }
     
     // Wait for modal to be visible, then fix map size and fit bounds
