@@ -775,6 +775,8 @@ function setupStartScreen() {
     // Populate Czech regions button AFTER saved custom regions so it appears before them
     populateCzechRegionButtons((region) => {
         selectedRegion = region;
+        // Clear custom region when selecting a predefined region
+        gameState.customRegion = null;
         saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
         checkStartButton();
     });
@@ -782,6 +784,8 @@ function setupStartScreen() {
     // Populate Czech districts button
     populateCzechDistrictButtons((district) => {
         selectedRegion = district;
+        // Clear custom region when selecting a predefined region
+        gameState.customRegion = null;
         saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
         checkStartButton();
     });
@@ -893,10 +897,17 @@ function setupStartScreen() {
                 console.log('Ignoring draw region button click (has own handler)');
                 return;
             }
+            
+            // Ignore saved custom region buttons (they have their own handler)
+            if (btn.classList.contains('saved-custom-region-btn')) {
+                return;
+            }
 
             document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
             selectedRegion = btn.dataset.region;
+            // Clear custom region when selecting a predefined region
+            gameState.customRegion = null;
             saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
             checkStartButton();
         });
