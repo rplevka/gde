@@ -901,11 +901,8 @@ function setupStartScreen() {
         selectedMode = 'static';
     }
     
-    // Enable start button since we have preselections
-    const startGameBtn = document.getElementById('startGameBtn');
-    if (startGameBtn) {
-        startGameBtn.disabled = false;
-    }
+    // Check if start button should be enabled based on preselections
+    // Note: checkStartButton() is defined later, so we call it after the event handlers
     
     // Region selection
     const regionButtons = document.querySelectorAll('.region-btn');
@@ -1027,9 +1024,8 @@ function setupStartScreen() {
     function checkStartButton() {
         const startBtn = document.getElementById('startGameBtn');
         const hasRegion = selectedRegion || gameState.customRegion;
-        if (hasRegion && selectedMode) {
-            startBtn.disabled = false;
-        }
+        const canStart = hasRegion && selectedMode;
+        startBtn.disabled = !canStart;
     }
     
     // Start game button
@@ -1039,6 +1035,14 @@ function setupStartScreen() {
         // Prevent double-click
         if (startBtn.disabled) return;
         startBtn.disabled = true;
+        
+        // Final validation before starting
+        const hasRegion = selectedRegion || gameState.customRegion;
+        if (!hasRegion) {
+            alert(t('alert.regionnotfound'));
+            startBtn.disabled = false;
+            return;
+        }
         
         // Check if multiplayer mode
         if (typeof multiplayerState !== 'undefined' && multiplayerState.isMultiplayer) {
@@ -1057,6 +1061,9 @@ function setupStartScreen() {
             await startGame();
         }
     });
+    
+    // Initial check for start button state based on preselections
+    checkStartButton();
 }
 
 async function startGame() {
