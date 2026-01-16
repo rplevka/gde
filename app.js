@@ -239,20 +239,25 @@ function populateCzechRegionButtons(onRegionSelect) {
     // Handle select change
     select.addEventListener('change', function(e) {
         const selectedKey = this.value;
+        const regionName = btn.querySelector('.region-name');
         if (selectedKey) {
             document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
-            
-            // Update button to show it's selected and store the key as data attribute
             btn.setAttribute('data-region', selectedKey);
-            
-            // Update button text to show selected region
-            const regionName = btn.querySelector('.region-name');
             regionName.textContent = this.options[this.selectedIndex].text;
             
             // Call the callback to update selectedRegion in setupStartScreen scope
             if (onRegionSelect) {
                 onRegionSelect(selectedKey);
+            }
+        } else {
+            // Reset to default state when selecting placeholder
+            btn.classList.remove('selected');
+            btn.removeAttribute('data-region');
+            regionName.setAttribute('data-i18n', 'region.czech_regions');
+            regionName.textContent = t('region.czech_regions');
+            if (onRegionSelect) {
+                onRegionSelect(null);
             }
         }
     });
@@ -330,20 +335,25 @@ function populateCzechDistrictButtons(onDistrictSelect) {
     // Handle select change
     select.addEventListener('change', function(e) {
         const selectedKey = this.value;
+        const districtName = btn.querySelector('.region-name');
         if (selectedKey) {
             document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
-            
-            // Update button to show it's selected and store the key as data attribute
             btn.setAttribute('data-region', selectedKey);
-            
-            // Update button text to show selected district
-            const districtName = btn.querySelector('.region-name');
             districtName.textContent = this.options[this.selectedIndex].text;
             
             // Call the callback to update selectedRegion in setupStartScreen scope
             if (onDistrictSelect) {
                 onDistrictSelect(selectedKey);
+            }
+        } else {
+            // Reset to default state when selecting placeholder
+            btn.classList.remove('selected');
+            btn.removeAttribute('data-region');
+            districtName.setAttribute('data-i18n', 'region.czech_districts');
+            districtName.textContent = t('region.czech_districts');
+            if (onDistrictSelect) {
+                onDistrictSelect(null);
             }
         }
     });
@@ -750,7 +760,9 @@ function setupStartScreen() {
         selectedRegion = region;
         // Clear custom region when selecting a predefined region
         gameState.customRegion = null;
-        saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
+        if (region) {
+            saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
+        }
         checkStartButton();
     });
     
@@ -759,7 +771,9 @@ function setupStartScreen() {
         selectedRegion = district;
         // Clear custom region when selecting a predefined region
         gameState.customRegion = null;
-        saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
+        if (district) {
+            saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
+        }
         checkStartButton();
     });
     
@@ -934,20 +948,25 @@ function setupStartScreen() {
         
         citySelect.addEventListener('change', function(e) {
             const selectedKey = this.value;
+            const regionName = citiesBtn.querySelector('.region-name');
             if (selectedKey) {
                 document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
                 citiesBtn.classList.add('selected');
                 citiesBtn.setAttribute('data-region', selectedKey);
-                
-                // Update button text
-                const regionName = citiesBtn.querySelector('.region-name');
                 regionName.textContent = this.options[this.selectedIndex].text;
                 
                 selectedRegion = selectedKey;
                 gameState.customRegion = null;
                 saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
-                checkStartButton();
+            } else {
+                // Reset to default state when selecting placeholder
+                citiesBtn.classList.remove('selected');
+                citiesBtn.removeAttribute('data-region');
+                regionName.setAttribute('data-i18n', 'region.cities');
+                regionName.textContent = t('region.cities');
+                selectedRegion = null;
             }
+            checkStartButton();
         });
     }
     
@@ -963,20 +982,25 @@ function setupStartScreen() {
         
         historicalRegionSelect.addEventListener('change', function(e) {
             const selectedKey = this.value;
+            const regionName = historicalRegionsBtn.querySelector('.region-name');
             if (selectedKey) {
                 document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
                 historicalRegionsBtn.classList.add('selected');
                 historicalRegionsBtn.setAttribute('data-region', selectedKey);
-                
-                // Update button text
-                const regionName = historicalRegionsBtn.querySelector('.region-name');
                 regionName.textContent = this.options[this.selectedIndex].text;
                 
                 selectedRegion = selectedKey;
                 gameState.customRegion = null;
                 saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
-                checkStartButton();
+            } else {
+                // Reset to default state when selecting placeholder
+                historicalRegionsBtn.classList.remove('selected');
+                historicalRegionsBtn.removeAttribute('data-region');
+                regionName.setAttribute('data-i18n', 'region.historical_regions');
+                regionName.textContent = t('region.historical_regions');
+                selectedRegion = null;
             }
+            checkStartButton();
         });
     }
     
