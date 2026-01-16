@@ -92,13 +92,16 @@
                             <span class="region-icon">🚇</span>
                             <span class="region-name" data-i18n="region.brno">Brno</span>
                         </button>
-                        <button class="region-btn" data-region="moravia">
-                            <span class="region-icon">🍷</span>
-                            <span class="region-name" data-i18n="region.moravia">Moravia</span>
-                        </button>
-                        <button class="region-btn" data-region="bohemia">
-                            <span class="region-icon">🍺</span>
-                            <span class="region-name" data-i18n="region.bohemia">Bohemia</span>
+                        <button class="region-btn" id="historicalRegionsBtn">
+                            <span class="region-icon">🏰</span>
+                            <span class="region-name" data-i18n="region.historical_regions">Historical Regions</span>
+                            <select id="historicalRegionSelect" class="region-select" onclick="event.stopPropagation();">
+                                <option value="" data-i18n="region.select_region">Select a region...</option>
+                                <option value="bohemia" data-i18n="region.bohemia">Bohemia</option>
+                                <option value="moravia" data-i18n="region.moravia">Moravia</option>
+                                <option value="silesia" data-i18n="region.silesia">Silesia</option>
+                                <option value="moravia_silesia" data-i18n="region.moravia_silesia">Moravia and Silesia</option>
+                            </select>
                         </button>
                         <button class="region-btn" id="drawRegionBtn">
                             <span class="region-icon">✏️</span>

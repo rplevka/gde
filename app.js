@@ -42,19 +42,37 @@ let REGIONS = {
     moravia: {
         name: 'Moravia',
         bounds: {
-            minLat: 48.5,
-            maxLat: 50.3,
-            minLon: 16.5,
-            maxLon: 18.9
+            minLat: 48.62,
+            maxLat: 50.25,
+            minLon: 15.13,
+            maxLon: 18.55
         }
     },
     bohemia: {
         name: 'Bohemia',
         bounds: {
-            minLat: 48.5,
-            maxLat: 51.1,
-            minLon: 12.0,
-            maxLon: 16.5
+            minLat: 48.55,
+            maxLat: 51.06,
+            minLon: 12.09,
+            maxLon: 16.85
+        }
+    },
+    silesia: {
+        name: 'Silesia',
+        bounds: {
+            minLat: 49.46,
+            maxLat: 50.45,
+            minLon: 16.86,
+            maxLon: 18.86
+        }
+    },
+    moravia_silesia: {
+        name: 'Moravia and Silesia',
+        bounds: {
+            minLat: 48.62,
+            maxLat: 50.45,
+            minLon: 15.13,
+            maxLon: 18.86
         }
     }
 };
@@ -113,6 +131,11 @@ async function loadBoundaryIndex() {
 async function loadBoundaryFile(regionKey) {
     const region = REGIONS[regionKey];
     
+    console.log(`🔍 loadBoundaryFile called for: ${regionKey}`);
+    console.log(`🔍 Region object:`, region);
+    console.log(`🔍 Region file:`, region?.file);
+    console.log(`🔍 Region paths:`, region?.paths ? `${region.paths[0]?.length} points` : 'none');
+    
     // Already loaded
     if (region.paths) {
         console.log(`✓ Boundary already loaded for ${regionKey}`);
@@ -132,24 +155,37 @@ async function loadBoundaryFile(regionKey) {
         }
         const boundaryData = await response.json();
         
-        // Process coordinates
-        const geoCoords = boundaryData.coordinates[0];
-        const coords = geoCoords.map(coord => [coord[1], coord[0]]);
-        
-        // Calculate bounds if not already set
-        if (!region.bounds || !region.bounds.minLat) {
-            const lats = coords.map(c => c[0]);
-            const lons = coords.map(c => c[1]);
-            region.bounds = {
-                minLat: Math.min(...lats),
-                maxLat: Math.max(...lats),
-                minLon: Math.min(...lons),
-                maxLon: Math.max(...lons)
-            };
+        // Handle both Polygon and MultiPolygon types
+        let allCoords = [];
+        if (boundaryData.type === 'MultiPolygon') {
+            // MultiPolygon: coordinates is array of polygons, each polygon is array of rings
+            region.paths = boundaryData.coordinates.map(polygon => {
+                const geoCoords = polygon[0]; // First ring of each polygon
+                const coords = geoCoords.map(coord => [coord[1], coord[0]]);
+                allCoords = allCoords.concat(coords);
+                return coords;
+            });
+            console.log(`✅ Loaded MultiPolygon with ${region.paths.length} polygons for ${regionKey}`);
+        } else {
+            // Regular Polygon: coordinates[0] is the exterior ring
+            const geoCoords = boundaryData.coordinates[0];
+            const coords = geoCoords.map(coord => [coord[1], coord[0]]);
+            allCoords = coords;
+            region.paths = [coords];
+            console.log(`✅ Loaded ${coords.length} points for ${regionKey}`);
         }
         
-        region.paths = [coords];
-        console.log(`✅ Loaded ${coords.length} points for ${regionKey}`);
+        // ALWAYS calculate bounds from all polygon points (overrides any hardcoded values)
+        const lats = allCoords.map(c => c[0]);
+        const lons = allCoords.map(c => c[1]);
+        region.bounds = {
+            minLat: Math.min(...lats),
+            maxLat: Math.max(...lats),
+            minLon: Math.min(...lons),
+            maxLon: Math.max(...lons)
+        };
+        
+        console.log(`📍 Bounds for ${regionKey}:`, region.bounds);
     } catch (error) {
         console.error(`❌ Failed to load boundary for ${regionKey}:`, error);
     }
@@ -912,6 +948,35 @@ function setupStartScreen() {
             checkStartButton();
         });
     });
+    
+    // Historical Regions dropdown handler
+    const historicalRegionSelect = document.getElementById('historicalRegionSelect');
+    const historicalRegionsBtn = document.getElementById('historicalRegionsBtn');
+    if (historicalRegionSelect && historicalRegionsBtn) {
+        historicalRegionsBtn.addEventListener('click', function(e) {
+            if (e.target === historicalRegionSelect || historicalRegionSelect.contains(e.target)) return;
+            historicalRegionSelect.focus();
+            historicalRegionSelect.click();
+        });
+        
+        historicalRegionSelect.addEventListener('change', function(e) {
+            const selectedKey = this.value;
+            if (selectedKey) {
+                document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
+                historicalRegionsBtn.classList.add('selected');
+                historicalRegionsBtn.setAttribute('data-region', selectedKey);
+                
+                // Update button text
+                const regionName = historicalRegionsBtn.querySelector('.region-name');
+                regionName.textContent = this.options[this.selectedIndex].text;
+                
+                selectedRegion = selectedKey;
+                gameState.customRegion = null;
+                saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
+                checkStartButton();
+            }
+        });
+    }
     
     // Draw region button
     const drawRegionBtn = document.getElementById('drawRegionBtn');
