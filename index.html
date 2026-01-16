@@ -84,13 +84,14 @@
                             <span class="region-icon">🇨🇿</span>
                             <span class="region-name" data-i18n="region.czechia">Czech Republic</span>
                         </button>
-                        <button class="region-btn" data-region="praha">
-                            <span class="region-icon">⭐</span>
-                            <span class="region-name" data-i18n="region.prague">Prague</span>
-                        </button>
-                        <button class="region-btn" data-region="brno">
-                            <span class="region-icon">🚇</span>
-                            <span class="region-name" data-i18n="region.brno">Brno</span>
+                        <button class="region-btn" id="citiesBtn">
+                            <span class="region-icon">🏙️</span>
+                            <span class="region-name" data-i18n="region.cities">Cities</span>
+                            <select id="citySelect" class="region-select" onclick="event.stopPropagation();">
+                                <option value="" data-i18n="region.select_city">Select a city...</option>
+                                <option value="praha" data-i18n="region.prague">Prague</option>
+                                <option value="brno" data-i18n="region.brno">Brno</option>
+                            </select>
                         </button>
                         <button class="region-btn" id="historicalRegionsBtn">
                             <span class="region-icon">🏰</span>

@@ -10,72 +10,9 @@ const CONFIG = {
     MAX_ATTEMPTS_PER_LOCATION: 10
 };
 
-// Region boundaries (bounding boxes and polygons)
-let REGIONS = {
-    czechia: {
-        name: 'Czech Republic',
-        bounds: {
-            minLat: 48.5,
-            maxLat: 51.1,
-            minLon: 12.0,
-            maxLon: 18.9
-        }
-    },
-    praha: {
-        name: 'Prague',
-        bounds: {
-            minLat: 49.94,
-            maxLat: 50.18,
-            minLon: 14.22,
-            maxLon: 14.71
-        }
-    },
-    brno: {
-        name: 'Brno',
-        bounds: {
-            minLat: 49.13,
-            maxLat: 49.27,
-            minLon: 16.48,
-            maxLon: 16.73
-        }
-    },
-    moravia: {
-        name: 'Moravia',
-        bounds: {
-            minLat: 48.62,
-            maxLat: 50.25,
-            minLon: 15.13,
-            maxLon: 18.55
-        }
-    },
-    bohemia: {
-        name: 'Bohemia',
-        bounds: {
-            minLat: 48.55,
-            maxLat: 51.06,
-            minLon: 12.09,
-            maxLon: 16.85
-        }
-    },
-    silesia: {
-        name: 'Silesia',
-        bounds: {
-            minLat: 49.46,
-            maxLat: 50.45,
-            minLon: 16.86,
-            maxLon: 18.86
-        }
-    },
-    moravia_silesia: {
-        name: 'Moravia and Silesia',
-        bounds: {
-            minLat: 48.62,
-            maxLat: 50.45,
-            minLon: 15.13,
-            maxLon: 18.86
-        }
-    }
-};
+// Region boundaries (populated dynamically from boundaries/index.json)
+// Bounds are calculated from polygons when loaded - no hardcoding needed!
+let REGIONS = {};
 
 // Boundary index cache
 let boundaryIndex = null;
@@ -888,8 +825,44 @@ function setupStartScreen() {
             
             regionBtn = czechRegionsBtn; // Mark as found
         }
+    } else if (['praha', 'brno'].includes(selectedRegion)) {
+        // City - need to select it in the Cities dropdown
+        const citiesBtn = document.getElementById('citiesBtn');
+        const citySelect = document.getElementById('citySelect');
+        
+        if (citiesBtn && citySelect) {
+            citySelect.value = selectedRegion;
+            citiesBtn.classList.add('selected');
+            citiesBtn.setAttribute('data-region', selectedRegion);
+            
+            const regionName = citiesBtn.querySelector('.region-name');
+            const selectedOption = citySelect.options[citySelect.selectedIndex];
+            if (selectedOption) {
+                regionName.textContent = selectedOption.text;
+            }
+            
+            regionBtn = citiesBtn;
+        }
+    } else if (['bohemia', 'moravia', 'silesia', 'moravia_silesia'].includes(selectedRegion)) {
+        // Historical region - need to select it in the Historical Regions dropdown
+        const historicalRegionsBtn = document.getElementById('historicalRegionsBtn');
+        const historicalRegionSelect = document.getElementById('historicalRegionSelect');
+        
+        if (historicalRegionsBtn && historicalRegionSelect) {
+            historicalRegionSelect.value = selectedRegion;
+            historicalRegionsBtn.classList.add('selected');
+            historicalRegionsBtn.setAttribute('data-region', selectedRegion);
+            
+            const regionName = historicalRegionsBtn.querySelector('.region-name');
+            const selectedOption = historicalRegionSelect.options[historicalRegionSelect.selectedIndex];
+            if (selectedOption) {
+                regionName.textContent = selectedOption.text;
+            }
+            
+            regionBtn = historicalRegionsBtn;
+        }
     } else {
-        // Standard region
+        // Standard region (just czechia now)
         regionBtn = document.querySelector(`.region-btn[data-region="${selectedRegion}"]`);
         if (regionBtn) {
             regionBtn.classList.add('selected');
@@ -948,6 +921,35 @@ function setupStartScreen() {
             checkStartButton();
         });
     });
+    
+    // Cities dropdown handler
+    const citySelect = document.getElementById('citySelect');
+    const citiesBtn = document.getElementById('citiesBtn');
+    if (citySelect && citiesBtn) {
+        citiesBtn.addEventListener('click', function(e) {
+            if (e.target === citySelect || citySelect.contains(e.target)) return;
+            citySelect.focus();
+            citySelect.click();
+        });
+        
+        citySelect.addEventListener('change', function(e) {
+            const selectedKey = this.value;
+            if (selectedKey) {
+                document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
+                citiesBtn.classList.add('selected');
+                citiesBtn.setAttribute('data-region', selectedKey);
+                
+                // Update button text
+                const regionName = citiesBtn.querySelector('.region-name');
+                regionName.textContent = this.options[this.selectedIndex].text;
+                
+                selectedRegion = selectedKey;
+                gameState.customRegion = null;
+                saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
+                checkStartButton();
+            }
+        });
+    }
     
     // Historical Regions dropdown handler
     const historicalRegionSelect = document.getElementById('historicalRegionSelect');
