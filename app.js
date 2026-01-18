@@ -1980,22 +1980,72 @@ function toRad(degrees) {
     return degrees * Math.PI / 180;
 }
 
-function calculateScore(distanceKm) {
-    // Scoring system: closer = more points
-    // Perfect guess (< 0.1 km): 5000 points
-    // < 1 km: 4000-5000 points
-    // < 5 km: 3000-4000 points
-    // < 25 km: 2000-3000 points
-    // < 100 km: 1000-2000 points
-    // < 500 km: 0-1000 points
-    // > 500 km: 0 points
+// Calculate the diagonal size of the current play region in km
+function getRegionDiagonalKm() {
+    const region = gameState.selectedRegion === 'custom' && gameState.customRegion 
+        ? gameState.customRegion 
+        : REGIONS[gameState.selectedRegion];
+    
+    if (!region || !region.bounds) {
+        // Fallback to default (roughly Czech Republic size)
+        return 500;
+    }
+    
+    // Calculate diagonal distance using Haversine formula
+    const diagonal = calculateDistance(
+        region.bounds.minLat, region.bounds.minLon,
+        region.bounds.maxLat, region.bounds.maxLon
+    );
+    
+    return diagonal;
+}
 
-    if (distanceKm < 0.1) return 5000;
-    if (distanceKm < 1) return Math.round(4000 + (1 - distanceKm) * 1000);
-    if (distanceKm < 5) return Math.round(3000 + (5 - distanceKm) / 4 * 1000);
-    if (distanceKm < 25) return Math.round(2000 + (25 - distanceKm) / 20 * 1000);
-    if (distanceKm < 100) return Math.round(1000 + (100 - distanceKm) / 75 * 1000);
-    if (distanceKm < 500) return Math.round((500 - distanceKm) / 400 * 1000);
+function calculateScore(distanceKm) {
+    // Area-aware scoring system: thresholds scale with region size
+    // This ensures fair scoring whether playing in a small village or entire country
+    
+    const regionDiagonal = getRegionDiagonalKm();
+    
+    // Define thresholds as percentages of region diagonal
+    // Tuned for Czech Republic (~490km diagonal) but scales to any region
+    // For CZ: perfect <1km, excellent <3km, great <12km, good <35km, okay <100km, zero >175km
+    const thresholds = {
+        perfect: regionDiagonal * 0.002,   // 0.2% of diagonal = 5000 pts
+        excellent: regionDiagonal * 0.006, // 0.6% of diagonal = 4000-5000 pts
+        great: regionDiagonal * 0.025,     // 2.5% of diagonal = 3000-4000 pts
+        good: regionDiagonal * 0.07,       // 7% of diagonal = 2000-3000 pts
+        okay: regionDiagonal * 0.2,        // 20% of diagonal = 1000-2000 pts
+        poor: regionDiagonal * 0.35        // 35% of diagonal = 0-1000 pts (175km for CZ)
+    };
+    
+    // Apply minimum thresholds to prevent impossibly tight requirements for tiny regions
+    // These are kept low to allow meaningful scoring even in small villages
+    const minThresholds = {
+        perfect: 0.05,    // At least 50m for perfect (GPS/click accuracy)
+        excellent: 0.1,  // At least 100m for excellent
+        great: 0.15,      // At least 150m for great
+        good: 0.3,        // At least 300m for good
+        okay: 0.5,        // At least 500m for okay
+        poor: 1.0         // At least 1km before zero
+    };
+    
+    // Use the larger of scaled or minimum threshold
+    const t = {
+        perfect: Math.max(thresholds.perfect, minThresholds.perfect),
+        excellent: Math.max(thresholds.excellent, minThresholds.excellent),
+        great: Math.max(thresholds.great, minThresholds.great),
+        good: Math.max(thresholds.good, minThresholds.good),
+        okay: Math.max(thresholds.okay, minThresholds.okay),
+        poor: Math.max(thresholds.poor, minThresholds.poor)
+    };
+    
+    // Scoring with scaled thresholds
+    if (distanceKm < t.perfect) return 5000;
+    if (distanceKm < t.excellent) return Math.round(4000 + (t.excellent - distanceKm) / (t.excellent - t.perfect) * 1000);
+    if (distanceKm < t.great) return Math.round(3000 + (t.great - distanceKm) / (t.great - t.excellent) * 1000);
+    if (distanceKm < t.good) return Math.round(2000 + (t.good - distanceKm) / (t.good - t.great) * 1000);
+    if (distanceKm < t.okay) return Math.round(1000 + (t.okay - distanceKm) / (t.okay - t.good) * 1000);
+    if (distanceKm < t.poor) return Math.round((t.poor - distanceKm) / (t.poor - t.okay) * 1000);
     return 0;
 }
 
