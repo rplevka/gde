@@ -194,10 +194,10 @@ function populateCzechRegionButtons(onRegionSelect) {
         .filter(([key, region]) => region.isCzechRegion)
         .sort((a, b) => a[1].name.localeCompare(b[1].name));
     
-    // Find insertion point - before saved custom regions or draw button
-    const firstSavedRegion = document.querySelector('.saved-custom-region-btn');
-    const drawBtn = document.getElementById('drawRegionBtn');
-    const insertBefore = firstSavedRegion || drawBtn;
+    // Find insertion point - after search button, before cities
+    const searchBtn = document.getElementById('searchLocationBtn');
+    const citiesBtn = document.getElementById('citiesBtn');
+    const insertBefore = citiesBtn;
     
     // Create single button with dropdown
     const btn = document.createElement('button');
@@ -289,11 +289,10 @@ function populateCzechDistrictButtons(onDistrictSelect) {
         .slice()
         .sort((a, b) => a.name.localeCompare(b.name));
     
-    // Find insertion point - after Czech regions button, before saved custom regions or draw button
+    // Find insertion point - after Czech regions button, before cities
     const czechRegionsBtn = document.getElementById('czechRegionsBtn');
-    const firstSavedRegion = document.querySelector('.saved-custom-region-btn');
-    const drawBtn = document.getElementById('drawRegionBtn');
-    const insertBefore = firstSavedRegion || drawBtn;
+    const citiesBtn = document.getElementById('citiesBtn');
+    const insertBefore = citiesBtn;
     
     // Create single button with dropdown
     const btn = document.createElement('button');
@@ -1006,6 +1005,77 @@ function setupStartScreen() {
     if (drawRegionBtn) {
         drawRegionBtn.addEventListener('click', () => {
             openDrawRegionModal(selectedRegion, checkStartButton);
+        });
+    }
+    
+    // Search location button
+    const searchLocationBtn = document.getElementById('searchLocationBtn');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    
+    if (searchLocationBtn) {
+        searchLocationBtn.addEventListener('click', (e) => {
+            // Don't trigger if clicking clear button
+            if (e.target.classList.contains('clear-search-btn')) {
+                return;
+            }
+            
+            // If this button is already selected and has an active search region, just keep it selected
+            if (searchLocationBtn.classList.contains('selected') && gameState.customRegion && gameState.customRegion.center) {
+                // Already selected with a search location, just ensure it stays selected
+                return;
+            }
+            
+            openSearchLocationModal((region, locationName) => {
+                gameState.customRegion = region;
+                gameState.selectedRegion = 'custom';
+                
+                // Update UI
+                document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
+                searchLocationBtn.classList.add('selected');
+                
+                // Update button text to show selected location
+                const regionName = searchLocationBtn.querySelector('.region-name');
+                regionName.textContent = locationName;
+                
+                // Show clear button
+                if (clearSearchBtn) {
+                    clearSearchBtn.style.display = 'block';
+                }
+                
+                // Don't save 'custom' to localStorage - it's not persistable
+                // Clear saved region so next time it defaults to Czechia
+                selectedRegion = 'czechia';
+                try {
+                    localStorage.removeItem('gde_lastRegion');
+                } catch (e) {}
+                
+                checkStartButton();
+            });
+        });
+    }
+    
+    // Clear search button
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Clear the search region
+            gameState.customRegion = null;
+            gameState.selectedRegion = null;
+            
+            // Reset button text
+            const regionName = searchLocationBtn.querySelector('.region-name');
+            regionName.textContent = t('region.search_location');
+            
+            // Hide clear button
+            clearSearchBtn.style.display = 'none';
+            
+            // Deselect button
+            searchLocationBtn.classList.remove('selected');
+            
+            // Update start button state
+            selectedRegion = null;
+            checkStartButton();
         });
     }
     
@@ -2310,38 +2380,63 @@ function returnToStartScreen() {
     document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
     
-    // Restore saved selections
-    const savedSelection = loadGameSelectionFromLocalStorage();
-    
-    // Restore region selection
-    let regionBtn = null;
-    if (savedSelection.region.startsWith('custom_')) {
-        const customRegionName = savedSelection.region.substring(7);
-        regionBtn = document.querySelector(`.saved-custom-region-btn[data-custom-region="${customRegionName}"]`);
-        
-        if (regionBtn) {
-            regionBtn.classList.add('selected');
-            // Load the custom region data
-            const savedRegions = getSavedCustomRegions();
-            const savedRegion = savedRegions.find(r => r.name === customRegionName);
-            if (savedRegion) {
-                gameState.customRegion = savedRegion.region;
+    // If we have an active search-based region, restore its selection and skip other restore logic
+    const searchLocationBtn = document.getElementById('searchLocationBtn');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    let hasSearchRegion = false;
+    if (gameState.selectedRegion === 'custom' && gameState.customRegion && gameState.customRegion.center) {
+        // This is a search-based region, keep it selected
+        hasSearchRegion = true;
+        if (searchLocationBtn) {
+            searchLocationBtn.classList.add('selected');
+            // Also show the clear button
+            if (clearSearchBtn) {
+                clearSearchBtn.style.display = 'block';
             }
         }
     } else {
-        regionBtn = document.querySelector(`.region-btn[data-region="${savedSelection.region}"]`);
-        if (regionBtn) {
-            regionBtn.classList.add('selected');
+        // Hide clear button if no search region
+        if (clearSearchBtn) {
+            clearSearchBtn.style.display = 'none';
         }
     }
     
-    // Fallback to czechia if saved region not found
-    if (!regionBtn) {
-        const czechiaBtn = document.querySelector('.region-btn[data-region="czechia"]');
-        if (czechiaBtn) czechiaBtn.classList.add('selected');
+    // Only restore saved region if we don't have an active search region
+    if (!hasSearchRegion) {
+        // Restore saved selections
+        const savedSelection = loadGameSelectionFromLocalStorage();
+        
+        // Restore region selection
+        let regionBtn = null;
+        if (savedSelection.region.startsWith('custom_')) {
+            const customRegionName = savedSelection.region.substring(7);
+            regionBtn = document.querySelector(`.saved-custom-region-btn[data-custom-region="${customRegionName}"]`);
+            
+            if (regionBtn) {
+                regionBtn.classList.add('selected');
+                // Load the custom region data
+                const savedRegions = getSavedCustomRegions();
+                const savedRegion = savedRegions.find(r => r.name === customRegionName);
+                if (savedRegion) {
+                    gameState.customRegion = savedRegion.region;
+                }
+            }
+        } else {
+            regionBtn = document.querySelector(`.region-btn[data-region="${savedSelection.region}"]`);
+            if (regionBtn) {
+                regionBtn.classList.add('selected');
+            }
+        }
+        
+        // Fallback to czechia if saved region not found
+        if (!regionBtn) {
+            const czechiaBtn = document.querySelector('.region-btn[data-region="czechia"]');
+            if (czechiaBtn) czechiaBtn.classList.add('selected');
+        }
     }
     
-    // Restore mode selection
+    // Restore mode selection (always restore this)
+    const savedSelection = loadGameSelectionFromLocalStorage();
     const modeBtn = document.querySelector(`.mode-btn[data-mode="${savedSelection.mode}"]`);
     if (modeBtn) {
         modeBtn.classList.add('selected');
@@ -2367,7 +2462,7 @@ function displaySavedCustomRegions() {
     // Remove any previously added custom region buttons
     document.querySelectorAll('.saved-custom-region-btn').forEach(btn => btn.remove());
     
-    // Add buttons for each saved region (before the "Draw Region" button)
+    // Add buttons for each saved region (after the "Draw Region" button)
     const drawRegionBtn = document.getElementById('drawRegionBtn');
     
     savedRegions.forEach(({ name, region }) => {
@@ -2380,8 +2475,8 @@ function displaySavedCustomRegions() {
             <button class="delete-region-btn" title="Delete this region">×</button>
         `;
         
-        // Insert before draw region button
-        regionGrid.insertBefore(btn, drawRegionBtn);
+        // Insert after draw region button (append to end)
+        regionGrid.appendChild(btn);
         
         // Handle selection
         btn.addEventListener('click', (e) => {
@@ -2721,4 +2816,231 @@ function isPointInPolygon(lat, lon, path) {
     }
     
     return inside;
+}
+
+// Search Location Modal Functionality
+function openSearchLocationModal(onConfirm) {
+    const modal = document.getElementById('searchLocationModal');
+    const searchInput = document.getElementById('locationSearchInput');
+    const searchResults = document.getElementById('searchResults');
+    const detailsSection = document.getElementById('searchLocationDetails');
+    const selectedNameEl = document.getElementById('selectedLocationName');
+    const selectedInfoEl = document.getElementById('selectedLocationInfo');
+    const radiusSlider = document.getElementById('radiusSlider');
+    const radiusValue = document.getElementById('radiusValue');
+    const confirmBtn = document.getElementById('confirmSearchLocation');
+    const cancelBtn = document.getElementById('cancelSearchLocation');
+    const mapContainer = document.getElementById('searchPreviewMap');
+    
+    let previewMap = null;
+    let circleLayer = null;
+    let markerLayer = null;
+    let selectedLocation = null;
+    let debounceTimer = null;
+    
+    // Use AbortController to clean up all event listeners on close
+    const abortController = new AbortController();
+    const signal = abortController.signal;
+    
+    // Reset state
+    searchInput.value = '';
+    searchResults.style.display = 'none';
+    searchResults.innerHTML = '';
+    detailsSection.style.display = 'none';
+    confirmBtn.disabled = true;
+    radiusSlider.value = 5;
+    radiusValue.textContent = '5 km';
+    
+    modal.style.display = 'flex';
+    
+    // Focus input
+    setTimeout(() => searchInput.focus(), 100);
+    
+    function cleanup() {
+        abortController.abort();
+        if (previewMap) {
+            previewMap.remove();
+            previewMap = null;
+        }
+        clearTimeout(debounceTimer);
+    }
+    
+    // Search input handler with debounce
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        clearTimeout(debounceTimer);
+        
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
+        
+        debounceTimer = setTimeout(async () => {
+            try {
+                const lang = getCurrentLanguage() || 'cs';
+                const response = await fetch(`/api/mapy/v1/suggest?query=${encodeURIComponent(query)}&limit=10&lang=${lang}&type=regional.municipality,regional.municipality_part,regional.street,regional.address,poi`);
+                const data = await response.json();
+                
+                if (data.items && data.items.length > 0) {
+                    renderSearchResults(data.items);
+                } else {
+                    searchResults.innerHTML = `<div style="padding: 15px; color: #666; text-align: center;">${t('search.no_results')}</div>`;
+                    searchResults.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                searchResults.style.display = 'none';
+            }
+        }, 300);
+    }, { signal });
+    
+    function renderSearchResults(items) {
+        searchResults.innerHTML = '';
+        
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.style.cssText = 'padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #eee; transition: background 0.2s;';
+            div.innerHTML = `
+                <div style="font-weight: 600; color: #333;">${item.name}</div>
+                <div style="font-size: 12px; color: #666;">${item.label} • ${item.location || ''}</div>
+            `;
+            
+            div.addEventListener('mouseenter', () => div.style.background = '#f5f5ff');
+            div.addEventListener('mouseleave', () => div.style.background = 'white');
+            
+            div.addEventListener('click', () => {
+                selectLocation(item);
+            });
+            
+            searchResults.appendChild(div);
+        });
+        
+        searchResults.style.display = 'block';
+    }
+    
+    function selectLocation(item) {
+        selectedLocation = item;
+        
+        // Update UI
+        searchInput.value = item.name;
+        searchResults.style.display = 'none';
+        selectedNameEl.textContent = item.name;
+        selectedInfoEl.textContent = `${item.label} • ${item.location || ''}`;
+        detailsSection.style.display = 'block';
+        confirmBtn.disabled = false;
+        
+        // Initialize or update map
+        if (!previewMap) {
+            previewMap = L.map(mapContainer).setView([item.position.lat, item.position.lon], 10);
+            L.tileLayer(`/api/mapy/v1/maptiles/basic/256/{z}/{x}/{y}`, {
+                attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s.</a>',
+            }).addTo(previewMap);
+        } else {
+            previewMap.setView([item.position.lat, item.position.lon], 10);
+        }
+        
+        updateMapOverlay();
+    }
+    
+    function updateMapOverlay() {
+        if (!selectedLocation || !previewMap) return;
+        
+        const radiusKm = parseInt(radiusSlider.value);
+        const lat = selectedLocation.position.lat;
+        const lon = selectedLocation.position.lon;
+        
+        // Remove existing layers
+        if (circleLayer) previewMap.removeLayer(circleLayer);
+        if (markerLayer) previewMap.removeLayer(markerLayer);
+        
+        // Add circle
+        circleLayer = L.circle([lat, lon], {
+            radius: radiusKm * 1000,
+            color: '#667eea',
+            fillColor: '#667eea',
+            fillOpacity: 0.2,
+            weight: 2
+        }).addTo(previewMap);
+        
+        // Add marker
+        markerLayer = L.marker([lat, lon], {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+                html: '<div style="background: #667eea; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>'
+            })
+        }).addTo(previewMap);
+        
+        // Fit to circle bounds
+        previewMap.fitBounds(circleLayer.getBounds(), { padding: [20, 20] });
+    }
+    
+    // Radius slider handler
+    radiusSlider.addEventListener('input', function() {
+        radiusValue.textContent = `${this.value} km`;
+        updateMapOverlay();
+    }, { signal });
+    
+    // Confirm button
+    confirmBtn.addEventListener('click', function() {
+        if (!selectedLocation) return;
+        
+        const radiusKm = parseInt(radiusSlider.value);
+        const lat = selectedLocation.position.lat;
+        const lon = selectedLocation.position.lon;
+        
+        // Calculate bounding box from center + radius
+        // 1 degree latitude ≈ 111 km
+        // 1 degree longitude ≈ 111 km * cos(latitude)
+        const latDelta = radiusKm / 111;
+        const lonDelta = radiusKm / (111 * Math.cos(lat * Math.PI / 180));
+        
+        // Create circular polygon (approximation with 64 points)
+        const points = [];
+        for (let i = 0; i < 64; i++) {
+            const angle = (i / 64) * 2 * Math.PI;
+            const pLat = lat + latDelta * Math.sin(angle);
+            const pLon = lon + lonDelta * Math.cos(angle);
+            points.push([pLat, pLon]);
+        }
+        points.push(points[0]); // Close the polygon
+        
+        const region = {
+            name: `${selectedLocation.name} (${radiusKm}km)`,
+            bounds: {
+                minLat: lat - latDelta,
+                maxLat: lat + latDelta,
+                minLon: lon - lonDelta,
+                maxLon: lon + lonDelta
+            },
+            paths: [points],
+            center: { lat, lon },
+            radius: radiusKm
+        };
+        
+        // Close modal and cleanup
+        modal.style.display = 'none';
+        cleanup();
+        
+        // Call callback
+        if (onConfirm) {
+            onConfirm(region, `${selectedLocation.name} (${radiusKm}km)`);
+        }
+    }, { signal });
+    
+    // Cancel button
+    cancelBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+        cleanup();
+    }, { signal });
+    
+    // Close on backdrop click
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            cleanup();
+        }
+    }, { signal });
 }

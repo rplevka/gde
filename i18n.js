@@ -26,9 +26,18 @@ const translations = {
         'region.silesia': 'Silesia',
         'region.moravia_silesia': 'Moravia and Silesia',
         'region.historical_regions': 'Historical Regions',
+        'region.search_location': 'Search Location',
         'region.draw': 'Draw Region',
         'region.czech_regions': 'Czech Regions',
         'region.select_region': 'Select a region...',
+        
+        // Search Location
+        'search.title': 'Search Location',
+        'search.instructions': 'Search for a place and set the play radius',
+        'search.placeholder': 'Search for a city, address, or place...',
+        'search.radius': 'Play Radius:',
+        'search.confirm': 'Use This Location',
+        'search.no_results': 'No results found',
         
         // Czech Regions
         'region.praha': 'Prague',
@@ -289,9 +298,18 @@ const translations = {
         'region.silesia': 'Slezsko',
         'region.moravia_silesia': 'Morava a Slezsko',
         'region.historical_regions': 'Historické země',
+        'region.search_location': 'Hledat místo',
         'region.draw': 'Vlastní region',
         'region.czech_regions': 'České kraje',
         'region.select_region': 'Vyber kraj...',
+        
+        // Search Location
+        'search.title': 'Hledat místo',
+        'search.instructions': 'Vyhledej místo a nastav poloměr hry',
+        'search.placeholder': 'Hledej město, adresu nebo místo...',
+        'search.radius': 'Poloměr hry:',
+        'search.confirm': 'Použít toto místo',
+        'search.no_results': 'Žádné výsledky',
         
         // Czech Regions
         'region.praha': 'Praha',

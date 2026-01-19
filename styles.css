@@ -101,7 +101,8 @@ body.game-active {
 }
 
 /* Delete button for saved custom regions */
-.delete-region-btn {
+.delete-region-btn,
+.clear-search-btn {
     position: absolute;
     top: 5px;
     right: 5px;
@@ -123,11 +124,13 @@ body.game-active {
     font-weight: bold;
 }
 
-.region-btn:hover .delete-region-btn {
+.region-btn:hover .delete-region-btn,
+.region-btn:hover .clear-search-btn {
     opacity: 1;
 }
 
-.delete-region-btn:hover {
+.delete-region-btn:hover,
+.clear-search-btn:hover {
     background: #cc0000;
     transform: scale(1.1);
 }

@@ -84,6 +84,11 @@
                             <span class="region-icon">🇨🇿</span>
                             <span class="region-name" data-i18n="region.czechia">Czech Republic</span>
                         </button>
+                        <button class="region-btn" id="searchLocationBtn">
+                            <span class="region-icon">🔎</span>
+                            <span class="region-name" data-i18n="region.search_location">Search Location</span>
+                            <span class="clear-search-btn" id="clearSearchBtn" title="Clear search" style="display: none;">×</span>
+                        </button>
                         <button class="region-btn" id="citiesBtn">
                             <span class="region-icon">🏙️</span>
                             <span class="region-name" data-i18n="region.cities">Cities</span>
@@ -380,6 +385,53 @@
                     <button id="saveDrawing" class="btn btn-success" disabled style="display: none;" data-i18n="draw.save">💾 Save Region</button>
                     <button id="confirmDrawing" class="btn btn-primary" disabled data-i18n="draw.confirm">Use Region</button>
                     <button id="cancelDrawing" class="btn btn-secondary" data-i18n="draw.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Location Modal -->
+        <div id="searchLocationModal" class="modal" style="display: none;">
+            <div class="modal-content modal-large">
+                <h2 data-i18n="search.title">📍 Search Location</h2>
+                <p class="modal-subtitle" data-i18n="search.instructions">Search for a place and set the play radius</p>
+                
+                <div class="search-input-container" style="position: relative; margin-bottom: 20px; overflow: visible;">
+                    <input type="text" id="locationSearchInput" 
+                           data-i18n-placeholder="search.placeholder"
+                           placeholder="Search for a city, address, or place..." 
+                           autocomplete="off"
+                           style="width: 100%; padding: 12px 15px; font-size: 16px; border: 2px solid #ddd; border-radius: 8px;">
+                    <div id="searchResults" style="display: none; position: fixed; left: 50%; transform: translateX(-50%); width: calc(90% - 60px); max-width: 940px; background: white; border: 2px solid #667eea; border-radius: 8px; max-height: 400px; overflow-y: auto; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"></div>
+                </div>
+                
+                <div id="searchLocationDetails" style="display: none;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding: 10px; background: #f0f7ff; border-radius: 8px;">
+                        <span style="font-size: 24px;">📍</span>
+                        <div>
+                            <div id="selectedLocationName" style="font-weight: 600; font-size: 16px;"></div>
+                            <div id="selectedLocationInfo" style="font-size: 12px; color: #666;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+                            <span data-i18n="search.radius">Play Radius:</span>
+                            <span id="radiusValue" style="color: #667eea; margin-left: 10px;">5 km</span>
+                        </label>
+                        <input type="range" id="radiusSlider" min="1" max="50" value="5" 
+                               style="width: 100%; cursor: pointer;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #666;">
+                            <span>1 km</span>
+                            <span>50 km</span>
+                        </div>
+                    </div>
+                    
+                    <div id="searchPreviewMap" style="width: 100%; height: 300px; border-radius: 8px; margin-bottom: 15px;"></div>
+                </div>
+                
+                <div class="draw-controls">
+                    <button id="confirmSearchLocation" class="btn btn-primary" disabled data-i18n="search.confirm">Use This Location</button>
+                    <button id="cancelSearchLocation" class="btn btn-secondary" data-i18n="draw.cancel">Cancel</button>
                 </div>
             </div>
         </div>

@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -202,17 +203,14 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 			attemptQuery["apiKey"] = []string{apiKey.Value}
 		}
 		
-		// Construct target URL
-		queryStr := ""
+		// Construct target URL with proper URL encoding
+		queryParams := url.Values{}
 		for k, v := range attemptQuery {
 			for _, val := range v {
-				if queryStr != "" {
-					queryStr += "&"
-				}
-				queryStr += fmt.Sprintf("%s=%s", k, val)
+				queryParams.Add(k, val)
 			}
 		}
-		targetURL := fmt.Sprintf("https://api.mapy.cz/%s?%s", apiPath, queryStr)
+		targetURL := fmt.Sprintf("https://api.mapy.cz/%s?%s", apiPath, queryParams.Encode())
 		
 		// Create proxy request
 		proxyReq, err := http.NewRequest(r.Method, targetURL, r.Body)
