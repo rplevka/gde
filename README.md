@@ -153,7 +153,7 @@ gde/
 ⚠️ **Important**: API keys in client-side JavaScript are always exposed and can be extracted from browser DevTools.
 
 **For Production Use:**
-- Use the included `server.py` proxy server (runs automatically with Docker)
+- Use the included `server.go` proxy server (runs automatically with Docker)
 - Store API keys as environment variables, never in code
 - See [SECURITY.md](SECURITY.md) for detailed security guide
 
