@@ -1,0 +1,11 @@
+api_keys:
+  - production_key: "your-production-api-key-here"
+  - backup_key: "your-backup-api-key-here"
+  - dev_key: "your-development-api-key-here"
+
+# Cache configuration (all optional - defaults shown)
+cache:
+  ttl_days: 90         # How long to keep cached tiles (default: 90)
+  max_size_mb: 5000    # Maximum cache size in MB (default: 5000 = 5GB)
+  dir: ".tile_cache"   # Cache directory (default: .tile_cache)
+  cleanup_hours: 24    # How often to run cleanup (default: 24)

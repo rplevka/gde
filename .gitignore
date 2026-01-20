@@ -1,4 +1,8 @@
-# API Keys
+# API Keys / Settings
 config.js
 api_keys.yaml
+settings.yaml
 developer/
+
+# Tile cache (can get huge - up to 5GB)
+.tile_cache/
