@@ -18,42 +18,12 @@ let multiplayerState = {
 
 // Initialize multiplayer UI handlers
 function setupMultiplayerUI() {
-    // Mode selection
-    const singlePlayerBtn = document.getElementById('singlePlayerBtn');
-    if (singlePlayerBtn) {
-        singlePlayerBtn.addEventListener('click', () => {
-            multiplayerState.isMultiplayer = false;
-            document.getElementById('modeSelectionScreen').style.display = 'none';
-            document.getElementById('startScreen').style.display = 'flex';
-        });
-    }
-    
-    const multiPlayerBtn = document.getElementById('multiPlayerBtn');
-    if (multiPlayerBtn) {
-        multiPlayerBtn.addEventListener('click', () => {
-            multiplayerState.isMultiplayer = true;
-            document.getElementById('multiplayerModal').style.display = 'flex';
-        });
-    }
-    
     // Switch to multiplayer from start screen
     const switchToMultiplayerBtn = document.getElementById('switchToMultiplayerBtn');
     if (switchToMultiplayerBtn) {
         switchToMultiplayerBtn.addEventListener('click', () => {
             multiplayerState.isMultiplayer = true;
             document.getElementById('multiplayerModal').style.display = 'flex';
-        });
-    }
-    
-    // Sync language selectors
-    const langSelect1 = document.getElementById('languageSelect');
-    const langSelect2 = document.getElementById('languageSelect2');
-    if (langSelect1 && langSelect2) {
-        langSelect1.addEventListener('change', () => {
-            langSelect2.value = langSelect1.value;
-        });
-        langSelect2.addEventListener('change', () => {
-            langSelect1.value = langSelect2.value;
         });
     }
     
@@ -106,7 +76,7 @@ function setupMultiplayerUI() {
     document.getElementById('copySessionCode').addEventListener('click', () => {
         const code = document.getElementById('lobbySessionCode').textContent;
         navigator.clipboard.writeText(code).then(() => {
-            alert(t('mp.codecopied'));
+            showToast(t('mp.codecopied'), 'success');
         });
     });
 }
@@ -235,7 +205,7 @@ function handleWebSocketMessage(msg) {
             break;
             
         case 'error':
-            alert(msg.payload.message);
+            showToast(msg.payload.message, 'error');
             break;
     }
 }
@@ -263,12 +233,14 @@ function joinSession(code, nick, icon) {
 // Show lobby
 function showLobby() {
     document.getElementById('multiplayerModal').style.display = 'none';
-    document.getElementById('modeSelectionScreen').style.display = 'none';
     document.getElementById('startScreen').style.display = 'flex';
     document.getElementById('lobbyPanel').style.display = 'block';
     
     // Update session code
     document.getElementById('lobbySessionCode').textContent = multiplayerState.sessionCode;
+    
+    // Disable start button until all players are ready
+    document.getElementById('startGameBtn').disabled = true;
     
     // Apply settings if owner
     if (multiplayerState.isOwner) {
@@ -344,11 +316,10 @@ function leaveLobby() {
     returnToModeSelection();
 }
 
-// Return to mode selection
+// Return to start screen
 function returnToModeSelection() {
     document.getElementById('lobbyPanel').style.display = 'none';
-    document.getElementById('startScreen').style.display = 'none';
-    document.getElementById('modeSelectionScreen').style.display = 'flex';
+    document.getElementById('startScreen').style.display = 'flex';
     
     multiplayerState = {
         isMultiplayer: false,
@@ -560,6 +531,23 @@ function startMultiplayerTimer(duration) {
             // Round will end from server
         }
     }, 1000);
+}
+
+// Show a toast notification
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Remove after 2.5 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
 }
 
 // Show notification when player submits
@@ -893,8 +881,8 @@ function handleGameFinished(data) {
         document.body.classList.remove('game-active');
         document.getElementById('app').classList.remove('game-active');
         
-        // Show mode selection
-        document.getElementById('modeSelectionScreen').style.display = 'flex';
+        // Show start screen
+        document.getElementById('startScreen').style.display = 'flex';
     };
 }
 

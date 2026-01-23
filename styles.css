@@ -1187,6 +1187,44 @@ input:disabled + .slider {
     font-weight: 600;
 }
 
+/* Toast Notifications */
+.toast-notification {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast-notification.toast-success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+}
+
+.toast-notification.toast-info {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.toast-notification.toast-error {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+}
+
 /* Multiplayer Scoreboard */
 .multiplayer-scoreboard {
     margin: 20px 0;

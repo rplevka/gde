@@ -1,4 +1,0 @@
-api_keys:
-  - production_key: "your-production-api-key-here"
-  - backup_key: "your-backup-api-key-here"
-  - dev_key: "your-development-api-key-here"

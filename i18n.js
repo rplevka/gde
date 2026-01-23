@@ -153,6 +153,7 @@ const translations = {
         'btn.restore': 'Show Results',
         'btn.reset': 'Reset Location',
         'btn.reset.title': 'Reset to Original Location',
+        'btn.back': 'Back',
         'btn.backmenu': 'Back to Menu',
         'btn.multiplayer': '👥 Multiplayer Mode',
         
@@ -258,6 +259,13 @@ const translations = {
         'mp.submitted': 'submitted their guess!',
         'mp.wins': '{player} wins!',
         'mp.withpoints': 'with {score} points',
+        'mp.subtitle': 'Join or create a game session',
+        'mp.profile': 'Your Profile',
+        'mp.nickname.placeholder': 'Enter your nickname',
+        'mp.or': 'OR',
+        'mp.entercode.placeholder': 'Enter session code (e.g. abc123)',
+        'mp.copy': 'Copy to clipboard',
+        'mp.leave': 'Leave',
         
         // Alerts and Confirms
         'alert.regionlimit': 'You can only save up to {max} custom regions. Please delete one first.',
@@ -425,6 +433,7 @@ const translations = {
         'btn.restore': 'Zobrazit výsledky',
         'btn.reset': 'Vrátit na začátek',
         'btn.reset.title': 'Vrátit se na původní místo',
+        'btn.back': 'Zpět',
         'btn.backmenu': 'Zpět do menu',
         'btn.multiplayer': '👥 Hra pro více hráčů',
         
@@ -530,6 +539,13 @@ const translations = {
         'mp.submitted': 'odeslal svůj tip!',
         'mp.wins': '{player} vyhrává!',
         'mp.withpoints': 's {score} body',
+        'mp.subtitle': 'Připoj se nebo vytvoř novou hru',
+        'mp.profile': 'Tvůj profil',
+        'mp.nickname.placeholder': 'Zadej přezdívku',
+        'mp.or': 'NEBO',
+        'mp.entercode.placeholder': 'Zadej kód hry (např. abc123)',
+        'mp.copy': 'Zkopírovat do schránky',
+        'mp.leave': 'Odejít',
         
         // Alerts and Confirms
         'alert.regionlimit': 'Můžeš mít uloženo maximálně {max} vlastních regionů. Nejprve nějaký smaž.',
@@ -613,10 +629,6 @@ function updatePageLanguage() {
     const langSelector = document.getElementById('languageSelect');
     if (langSelector) {
         langSelector.value = currentLanguage;
-    }
-    const langSelector2 = document.getElementById('languageSelect2');
-    if (langSelector2) {
-        langSelector2.value = currentLanguage;
     }
     
     // Update HTML lang attribute

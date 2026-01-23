@@ -520,12 +520,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Ensure mode selection screen is hidden and start screen is visible
-    const modeSelectionScreen = document.getElementById('modeSelectionScreen');
+    // Ensure start screen is visible on load
     const startScreen = document.getElementById('startScreen');
-    if (modeSelectionScreen) {
-        modeSelectionScreen.style.display = 'none';
-    }
     if (startScreen) {
         startScreen.style.display = 'flex';
     }
@@ -540,12 +536,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', (e) => {
-            setLanguage(e.target.value);
-        });
-    }
-    const languageSelect2 = document.getElementById('languageSelect2');
-    if (languageSelect2) {
-        languageSelect2.addEventListener('change', (e) => {
             setLanguage(e.target.value);
         });
     }
@@ -2445,8 +2435,10 @@ function returnToStartScreen() {
         if (staticBtn) staticBtn.classList.add('selected');
     }
     
-    // Enable start button since we have restored selections
-    document.getElementById('startGameBtn').disabled = false;
+    // Enable start button since we have restored selections (only in single player)
+    if (!gameState.isMultiplayer) {
+        document.getElementById('startGameBtn').disabled = false;
+    }
 }
 
 function showError(message) {
