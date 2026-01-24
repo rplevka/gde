@@ -169,6 +169,10 @@ const translations = {
         'map.layer.winter': 'Winter',
         'map.layer.aerial': 'Aerial',
         
+        // Mobile Tabs
+        'tab.panorama': 'Panorama',
+        'tab.map': 'Map',
+        
         // Results
         'result.title': 'Round Result',
         'result.round': 'Round {round} Result',
@@ -450,6 +454,10 @@ const translations = {
         'map.layer.outdoor': 'Turistická',
         'map.layer.winter': 'Zimní',
         'map.layer.aerial': 'Letecká',
+        
+        // Mobile Tabs
+        'tab.panorama': 'Panorama',
+        'tab.map': 'Mapa',
         
         // Results
         'result.title': 'Výsledek kola',

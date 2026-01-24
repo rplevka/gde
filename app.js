@@ -1305,12 +1305,95 @@ function setupEventListeners() {
     // Toggle map size button
     document.getElementById('toggleMapSize').addEventListener('click', toggleMapSize);
     
+    // Mobile tab bar
+    setupMobileTabBar();
+    
     // Finish game button (for infinite mode)
     document.getElementById('finishGame').addEventListener('click', () => {
         if (confirm(t('confirm.endgame'))) {
             showFinalScore();
         }
     });
+}
+
+// Mobile tab bar functionality
+function setupMobileTabBar() {
+    const tabBar = document.getElementById('mobileTabBar');
+    if (!tabBar) return;
+    
+    const tabs = tabBar.querySelectorAll('.mobile-tab');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab;
+            
+            // Update active tab styling
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            // Toggle mobile map active class on body
+            if (tabName === 'map') {
+                document.body.classList.add('mobile-map-active');
+                // Ensure map is visible and sized correctly
+                const mapOverlay = document.getElementById('mapOverlay');
+                mapOverlay.style.display = 'flex';
+                
+                // Invalidate map size and fit bounds after transition
+                setTimeout(() => {
+                    if (gameState.map) {
+                        gameState.map.invalidateSize();
+                        // Re-fit to region bounds since map was hidden during init
+                        fitMapToRegion();
+                    }
+                }, 100);
+            } else {
+                document.body.classList.remove('mobile-map-active');
+                // Hide map overlay (remove inline style so CSS takes over)
+                const mapOverlay = document.getElementById('mapOverlay');
+                mapOverlay.style.display = '';
+            }
+        });
+    });
+}
+
+// Fit map to current region bounds
+function fitMapToRegion() {
+    if (!gameState.map) return;
+    
+    const isCustomRegion = gameState.selectedRegion === 'custom' || 
+                           (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
+    const region = isCustomRegion && gameState.customRegion 
+        ? gameState.customRegion 
+        : REGIONS[gameState.selectedRegion];
+    
+    if (region && region.bounds) {
+        const bounds = L.latLngBounds(
+            [region.bounds.minLat, region.bounds.minLon],
+            [region.bounds.maxLat, region.bounds.maxLon]
+        );
+        gameState.map.fitBounds(bounds, { padding: [20, 20] });
+    }
+}
+
+// Reset mobile tabs when starting new round
+function resetMobileTabToDefault() {
+    const tabBar = document.getElementById('mobileTabBar');
+    if (!tabBar) return;
+    
+    const tabs = tabBar.querySelectorAll('.mobile-tab');
+    tabs.forEach(t => {
+        t.classList.remove('active');
+        if (t.dataset.tab === 'panorama') {
+            t.classList.add('active');
+        }
+    });
+    
+    document.body.classList.remove('mobile-map-active');
+    // Reset map overlay display to CSS default
+    const mapOverlay = document.getElementById('mapOverlay');
+    if (mapOverlay) {
+        mapOverlay.style.display = '';
+    }
 }
 
 function toggleMapSize() {
@@ -1647,6 +1730,9 @@ async function startNewRound() {
     try {
         // Reset round state
         gameState.roundSubmitted = false;
+        
+        // Reset mobile tab to panorama view
+        resetMobileTabToDefault();
     
         // Hide flash overlay from previous round
         hideFlashOverlay();
