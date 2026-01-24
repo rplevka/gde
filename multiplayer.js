@@ -24,6 +24,14 @@ function setupMultiplayerUI() {
         switchToMultiplayerBtn.addEventListener('click', () => {
             multiplayerState.isMultiplayer = true;
             document.getElementById('multiplayerModal').style.display = 'flex';
+            
+            // Ensure default icon is selected in UI
+            document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('selected'));
+            const defaultIcon = document.querySelector('.icon-btn[data-icon="😀"]');
+            if (defaultIcon) {
+                defaultIcon.classList.add('selected');
+            }
+            multiplayerState.playerIcon = '😀';
         });
     }
     
@@ -210,13 +218,49 @@ function handleWebSocketMessage(msg) {
     }
 }
 
+// Get the current region selection from UI (since gameState.selectedRegion may not be set for dropdowns)
+function getCurrentRegionSelection() {
+    // Check for selected region button with data-region attribute
+    const selectedBtn = document.querySelector('.region-btn.selected');
+    if (selectedBtn) {
+        const region = selectedBtn.getAttribute('data-region');
+        if (region) {
+            return region;
+        }
+    }
+    
+    // Check dropdowns
+    const dropdowns = ['citySelect', 'czechRegionSelect', 'czechDistrictSelect', 'historicalRegionSelect'];
+    for (const selectId of dropdowns) {
+        const select = document.getElementById(selectId);
+        if (select && select.value) {
+            return select.value;
+        }
+    }
+    
+    // Fall back to gameState
+    return gameState.selectedRegion || 'czechia';
+}
+
 // Create session
 function createSession(nick, icon) {
     connectWebSocket();
     
+    // Get current selection from UI (more reliable than gameState for dropdowns)
+    const currentRegion = getCurrentRegionSelection();
+    const currentSettings = {
+        region: currentRegion,
+        mode: gameState.selectedMode || 'static',
+        mapLayers: gameState.preferences.mapLayers,
+        showRegion: gameState.preferences.showRegion,
+        turnAround: gameState.preferences.turnAround,
+        zoom: gameState.preferences.zoom,
+        targetOriginal: gameState.preferences.targetOriginal
+    };
+    
     // Wait for connection then send
     setTimeout(() => {
-        sendWS('createSession', { nick, icon });
+        sendWS('createSession', { nick, icon, settings: currentSettings });
     }, 500);
 }
 
@@ -271,7 +315,7 @@ function updateLobbyPlayers() {
             <div class="player-icon">${player.icon}</div>
             <div class="player-info">
                 <div class="player-nick">
-                    ${player.nick}${isMe ? ' (You)' : ''}
+                    ${player.nick}${isMe ? ' ' + t('mp.you') : ''}
                     ${player.isOwner ? '<span class="player-owner-badge">HOST</span>' : ''}
                 </div>
             </div>
@@ -279,7 +323,7 @@ function updateLobbyPlayers() {
                 ${player.isReady ? '✓' : '○'}
             </div>
             ${multiplayerState.isOwner && !player.isOwner ? 
-                `<button class="kick-btn" onclick="kickPlayer('${player.id}')">Kick</button>` : ''}
+                `<button class="kick-btn" onclick="kickPlayer('${player.id}')">${t('mp.kick')}</button>` : ''}
         `;
         
         container.appendChild(playerDiv);
@@ -316,10 +360,33 @@ function leaveLobby() {
     returnToModeSelection();
 }
 
+// Close WebSocket connection (for external cleanup)
+function closeMultiplayerConnection() {
+    if (ws) {
+        // Temporarily disable the onclose handler to prevent duplicate cleanup
+        const wasMultiplayer = multiplayerState.isMultiplayer;
+        multiplayerState.isMultiplayer = false;
+        ws.close();
+        ws = null;
+        if (wasMultiplayer) {
+            console.log('Multiplayer connection closed');
+        }
+    }
+}
+
+// Export for app.js access
+window.closeMultiplayerConnection = closeMultiplayerConnection;
+
 // Return to start screen
 function returnToModeSelection() {
     document.getElementById('lobbyPanel').style.display = 'none';
     document.getElementById('startScreen').style.display = 'flex';
+    
+    // Re-enable controls that may have been disabled for non-owners
+    reEnableControls();
+    
+    // Also explicitly enable start button
+    document.getElementById('startGameBtn').disabled = false;
     
     multiplayerState = {
         isMultiplayer: false,
@@ -334,6 +401,44 @@ function returnToModeSelection() {
     };
 }
 
+// Re-enable controls after leaving multiplayer (they get disabled for non-owners)
+// Exported to window so app.js can call it when returning to start screen
+function reEnableControls() {
+    // Re-enable region and mode buttons
+    document.querySelectorAll('.region-btn, .mode-btn').forEach(btn => {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+    });
+    
+    // Re-enable settings button
+    const difficultyBtn = document.getElementById('difficultyPrefsBtn');
+    if (difficultyBtn) {
+        difficultyBtn.disabled = false;
+    }
+    
+    // Re-enable dropdowns
+    ['citySelect', 'czechRegionSelect', 'czechDistrictSelect', 'historicalRegionSelect'].forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.disabled = false;
+        }
+    });
+    
+    // Re-enable start button
+    const startBtn = document.getElementById('startGameBtn');
+    if (startBtn) {
+        startBtn.disabled = false;
+    }
+    
+    // Reset multiplayer state
+    gameState.isMultiplayer = false;
+    multiplayerState.isMultiplayer = false;
+}
+
+// Export to window for app.js access
+window.reEnableControls = reEnableControls;
+
 // Enable owner controls
 function enableOwnerControls() {
     // Enable region and mode buttons
@@ -346,11 +451,38 @@ function enableOwnerControls() {
     // Enable settings button
     document.getElementById('difficultyPrefsBtn').disabled = false;
     
-    // Listen for setting changes
+    // Listen for setting changes on region buttons
     document.querySelectorAll('.region-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            sendWS('updateSettings', { region: btn.dataset.region });
+            // Check if button has a dropdown inside
+            const dropdown = btn.querySelector('select');
+            if (dropdown && dropdown.value) {
+                // Send the dropdown's current value
+                sendWS('updateSettings', { region: dropdown.value });
+            } else if (btn.dataset.region && !dropdown) {
+                // Only send if the button has a direct region (not a dropdown container)
+                sendWS('updateSettings', { region: btn.dataset.region });
+            }
         });
+    });
+    
+    // Listen for dropdown changes (cities, czech regions, districts, historical regions)
+    const dropdowns = [
+        'citySelect',
+        'czechRegionSelect', 
+        'czechDistrictSelect',
+        'historicalRegionSelect'
+    ];
+    
+    dropdowns.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.addEventListener('change', () => {
+                if (select.value) {
+                    sendWS('updateSettings', { region: select.value });
+                }
+            });
+        }
     });
     
     document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -383,6 +515,14 @@ function disableOwnerControls() {
     
     // Disable settings button
     document.getElementById('difficultyPrefsBtn').disabled = true;
+    
+    // Disable dropdowns
+    ['citySelect', 'czechRegionSelect', 'czechDistrictSelect', 'historicalRegionSelect'].forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.disabled = true;
+        }
+    });
 }
 
 // Apply multiplayer settings
@@ -391,13 +531,80 @@ function applyMultiplayerSettings() {
     
     const settings = multiplayerState.settings;
     
-    // Select region
+    // Clear all region button selections first
     document.querySelectorAll('.region-btn').forEach(btn => {
         btn.classList.remove('selected');
-        if (btn.dataset.region === settings.region) {
-            btn.classList.add('selected');
-        }
     });
+    
+    // Handle dropdown-based selections (cities, districts, czech regions, historical regions)
+    const region = settings.region;
+    
+    // Try to match direct region button first
+    const directBtn = document.querySelector(`.region-btn[data-region="${region}"]`);
+    if (directBtn && !directBtn.querySelector('select')) {
+        directBtn.classList.add('selected');
+    } else {
+        // Check if it's a city
+        if (['praha', 'brno'].includes(region)) {
+            const citiesBtn = document.getElementById('citiesBtn');
+            const citySelect = document.getElementById('citySelect');
+            if (citiesBtn && citySelect) {
+                citySelect.value = region;
+                citiesBtn.classList.add('selected');
+                citiesBtn.setAttribute('data-region', region);
+                const regionName = citiesBtn.querySelector('.region-name');
+                const selectedOption = citySelect.options[citySelect.selectedIndex];
+                if (selectedOption && regionName) {
+                    regionName.textContent = selectedOption.text;
+                }
+            }
+        }
+        // Check if it's a historical region
+        else if (['bohemia', 'moravia', 'silesia', 'moravia_silesia'].includes(region)) {
+            const historicalBtn = document.getElementById('historicalRegionsBtn');
+            const historicalSelect = document.getElementById('historicalRegionSelect');
+            if (historicalBtn && historicalSelect) {
+                historicalSelect.value = region;
+                historicalBtn.classList.add('selected');
+                historicalBtn.setAttribute('data-region', region);
+                const regionName = historicalBtn.querySelector('.region-name');
+                const selectedOption = historicalSelect.options[historicalSelect.selectedIndex];
+                if (selectedOption && regionName) {
+                    regionName.textContent = selectedOption.text;
+                }
+            }
+        }
+        // Check if it's a czech region (kraj)
+        else if (typeof REGIONS !== 'undefined' && REGIONS[region]?.isCzechRegion) {
+            const czechRegionsBtn = document.getElementById('czechRegionsBtn');
+            const czechRegionSelect = document.getElementById('czechRegionSelect');
+            if (czechRegionsBtn && czechRegionSelect) {
+                czechRegionSelect.value = region;
+                czechRegionsBtn.classList.add('selected');
+                czechRegionsBtn.setAttribute('data-region', region);
+                const regionName = czechRegionsBtn.querySelector('.region-name');
+                const selectedOption = czechRegionSelect.options[czechRegionSelect.selectedIndex];
+                if (selectedOption && regionName) {
+                    regionName.textContent = selectedOption.text;
+                }
+            }
+        }
+        // Check if it's a district (okres)
+        else if (typeof REGIONS !== 'undefined' && REGIONS[region]?.isDistrict) {
+            const districtBtn = document.getElementById('czechDistrictsBtn');
+            const districtSelect = document.getElementById('czechDistrictSelect');
+            if (districtBtn && districtSelect) {
+                districtSelect.value = region;
+                districtBtn.classList.add('selected');
+                districtBtn.setAttribute('data-region', region);
+                const regionName = districtBtn.querySelector('.region-name');
+                const selectedOption = districtSelect.options[districtSelect.selectedIndex];
+                if (selectedOption && regionName) {
+                    regionName.textContent = selectedOption.text;
+                }
+            }
+        }
+    }
     
     // Select mode
     document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -423,7 +630,7 @@ function applyMultiplayerSettings() {
 }
 
 // Start multiplayer game
-function startMultiplayerGame() {
+async function startMultiplayerGame() {
     // Hide lobby
     document.getElementById('lobbyPanel').style.display = 'none';
     
@@ -434,6 +641,12 @@ function startMultiplayerGame() {
     // Start game with multiplayer settings
     gameState.selectedRegion = multiplayerState.settings.region;
     gameState.selectedMode = multiplayerState.settings.mode;
+    
+    // Load boundary for selected region (just like single player does)
+    if (gameState.selectedRegion && REGIONS[gameState.selectedRegion]) {
+        console.log(`🔄 Loading boundary for multiplayer region: ${gameState.selectedRegion}`);
+        await loadBoundaryFile(gameState.selectedRegion);
+    }
     
     // Hide start screen and start game
     document.getElementById('startScreen').style.display = 'none';
@@ -607,16 +820,15 @@ function handleMultiplayerRoundEnd(data) {
     
     // Show countdown timer
     const countdownDiv = document.getElementById('multiplayerCountdown');
-    const countdownTimer = document.getElementById('countdownTimer');
-    if (countdownDiv && countdownTimer) {
+    if (countdownDiv) {
         countdownDiv.style.display = 'block';
         let secondsLeft = 5;
-        countdownTimer.textContent = secondsLeft;
+        countdownDiv.textContent = t('mp.countdown').replace('{seconds}', secondsLeft);
         
         multiplayerState.countdownInterval = setInterval(() => {
             secondsLeft--;
             if (secondsLeft > 0) {
-                countdownTimer.textContent = secondsLeft;
+                countdownDiv.textContent = t('mp.countdown').replace('{seconds}', secondsLeft);
             } else {
                 clearInterval(multiplayerState.countdownInterval);
                 multiplayerState.countdownInterval = null;

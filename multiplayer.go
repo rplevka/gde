@@ -82,8 +82,34 @@ func generateSessionCode() string {
 }
 
 // Create new session
-func createSession(owner *Player) *GameSession {
+func createSession(owner *Player, initialSettings *GameSettings) *GameSession {
 	code := generateSessionCode()
+	
+	// Default settings
+	settings := GameSettings{
+		Region:         "czechia",
+		Mode:           "static",
+		MapLayers:      true,
+		ShowRegion:     true,
+		TurnAround:     true,
+		Zoom:           true,
+		TargetOriginal: true,
+	}
+	
+	// Use initial settings if provided
+	if initialSettings != nil {
+		if initialSettings.Region != "" {
+			settings.Region = initialSettings.Region
+		}
+		if initialSettings.Mode != "" {
+			settings.Mode = initialSettings.Mode
+		}
+		settings.MapLayers = initialSettings.MapLayers
+		settings.ShowRegion = initialSettings.ShowRegion
+		settings.TurnAround = initialSettings.TurnAround
+		settings.Zoom = initialSettings.Zoom
+		settings.TargetOriginal = initialSettings.TargetOriginal
+	}
 	
 	session := &GameSession{
 		Code:        code,
@@ -92,15 +118,7 @@ func createSession(owner *Player) *GameSession {
 		State:       "lobby",
 		Round:       0,
 		TimerCancel: make(chan bool, 1),
-		Settings: GameSettings{
-			Region:         "czechia",
-			Mode:           "static",
-			MapLayers:      true,
-			ShowRegion:     true,
-			TurnAround:     true,
-			Zoom:           true,
-			TargetOriginal: true,
-		},
+		Settings:    settings,
 	}
 	
 	owner.Session = session
@@ -192,6 +210,24 @@ func (p *Player) send(msgType string, payload interface{}) {
 		if err != nil {
 			log.Printf("Error sending to player %s: %v", p.Nick, err)
 		}
+	}
+}
+
+// Send error message directly to a connection (before player is created)
+func sendErrorToConn(conn *websocket.Conn, message string) {
+	msg := WSMessage{
+		Type:    "error",
+		Payload: map[string]string{"message": message},
+	}
+	
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Error marshaling error message: %v", err)
+		return
+	}
+	
+	if conn != nil {
+		conn.WriteMessage(websocket.TextMessage, data)
 	}
 }
 
@@ -325,17 +361,58 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 func handleMessage(conn *websocket.Conn, player **Player, msg WSMessage) {
 	switch msg.Type {
 	case "createSession":
-		payload := msg.Payload.(map[string]interface{})
+		payload, ok := msg.Payload.(map[string]interface{})
+		if !ok {
+			log.Printf("Invalid createSession payload")
+			return
+		}
+		
+		nick, _ := payload["nick"].(string)
+		icon, _ := payload["icon"].(string)
+		if nick == "" {
+			nick = "Player"
+		}
+		if icon == "" {
+			icon = "😀"
+		}
+		
 		*player = &Player{
 			ID:      generateSessionCode() + "-" + generateSessionCode(),
-			Nick:    payload["nick"].(string),
-			Icon:    payload["icon"].(string),
+			Nick:    nick,
+			Icon:    icon,
 			IsReady: false,
 			Conn:    conn,
 			Score:   0,
 		}
 		
-		session := createSession(*player)
+		// Parse initial settings if provided
+		var initialSettings *GameSettings
+		if settingsMap, ok := payload["settings"].(map[string]interface{}); ok {
+			initialSettings = &GameSettings{}
+			if region, ok := settingsMap["region"].(string); ok {
+				initialSettings.Region = region
+			}
+			if mode, ok := settingsMap["mode"].(string); ok {
+				initialSettings.Mode = mode
+			}
+			if mapLayers, ok := settingsMap["mapLayers"].(bool); ok {
+				initialSettings.MapLayers = mapLayers
+			}
+			if showRegion, ok := settingsMap["showRegion"].(bool); ok {
+				initialSettings.ShowRegion = showRegion
+			}
+			if turnAround, ok := settingsMap["turnAround"].(bool); ok {
+				initialSettings.TurnAround = turnAround
+			}
+			if zoom, ok := settingsMap["zoom"].(bool); ok {
+				initialSettings.Zoom = zoom
+			}
+			if targetOriginal, ok := settingsMap["targetOriginal"].(bool); ok {
+				initialSettings.TargetOriginal = targetOriginal
+			}
+		}
+		
+		session := createSession(*player, initialSettings)
 	
 		log.Printf("Session created: %s", session.Code)
 	
@@ -347,17 +424,36 @@ func handleMessage(conn *websocket.Conn, player **Player, msg WSMessage) {
 		})
 		
 	case "joinSession":
-		payload := msg.Payload.(map[string]interface{})
+		payload, ok := msg.Payload.(map[string]interface{})
+		if !ok {
+			log.Printf("Invalid joinSession payload")
+			return
+		}
+		
+		nick, _ := payload["nick"].(string)
+		icon, _ := payload["icon"].(string)
+		code, _ := payload["code"].(string)
+		
+		if nick == "" {
+			nick = "Player"
+		}
+		if icon == "" {
+			icon = "😀"
+		}
+		if code == "" {
+			sendErrorToConn(conn, "Session code is required")
+			return
+		}
+		
 		*player = &Player{
 			ID:      generateSessionCode() + "-" + generateSessionCode(),
-			Nick:    payload["nick"].(string),
-			Icon:    payload["icon"].(string),
+			Nick:    nick,
+			Icon:    icon,
 			IsReady: false,
 			Conn:    conn,
 			Score:   0,
 		}
 		
-		code := payload["code"].(string)
 		session, err := joinSession(code, *player)
 		if err != nil {
 			(*player).send("error", map[string]string{"message": err.Error()})

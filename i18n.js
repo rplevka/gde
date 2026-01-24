@@ -266,6 +266,8 @@ const translations = {
         'mp.entercode.placeholder': 'Enter session code (e.g. abc123)',
         'mp.copy': 'Copy to clipboard',
         'mp.leave': 'Leave',
+        'mp.kick': 'Kick',
+        'mp.you': '(You)',
         
         // Alerts and Confirms
         'alert.regionlimit': 'You can only save up to {max} custom regions. Please delete one first.',
@@ -546,6 +548,8 @@ const translations = {
         'mp.entercode.placeholder': 'Zadej kód hry (např. abc123)',
         'mp.copy': 'Zkopírovat do schránky',
         'mp.leave': 'Odejít',
+        'mp.kick': 'Vyhodit',
+        'mp.you': '(Ty)',
         
         // Alerts and Confirms
         'alert.regionlimit': 'Můžeš mít uloženo maximálně {max} vlastních regionů. Nejprve nějaký smaž.',

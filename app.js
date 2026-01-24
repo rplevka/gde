@@ -2438,6 +2438,17 @@ function returnToStartScreen() {
     // Enable start button since we have restored selections (only in single player)
     if (!gameState.isMultiplayer) {
         document.getElementById('startGameBtn').disabled = false;
+    } else {
+        // Close the multiplayer WebSocket connection
+        if (typeof window.closeMultiplayerConnection === 'function') {
+            window.closeMultiplayerConnection();
+        }
+        // Re-enable controls that were disabled during multiplayer (for non-owners)
+        if (typeof window.reEnableControls === 'function') {
+            window.reEnableControls();
+        }
+        gameState.isMultiplayer = false;
+        document.getElementById('startGameBtn').disabled = false;
     }
 }
 
