@@ -48,14 +48,32 @@ type GameSession struct {
 	mutex       sync.RWMutex
 }
 
+// CustomRegionBounds defines the bounding box for a custom region
+type CustomRegionBounds struct {
+	MinLat float64 `json:"minLat"`
+	MaxLat float64 `json:"maxLat"`
+	MinLon float64 `json:"minLon"`
+	MaxLon float64 `json:"maxLon"`
+}
+
+// CustomRegion represents a user-defined region (drawn polygon or search-based circle)
+type CustomRegion struct {
+	Name   string               `json:"name"`
+	Bounds CustomRegionBounds   `json:"bounds"`
+	Paths  [][][]float64        `json:"paths"` // Array of polygons, each polygon is array of [lat, lon]
+	Center *Location            `json:"center,omitempty"` // Only for search-based regions
+	Radius *int                 `json:"radius,omitempty"` // Only for search-based regions (km)
+}
+
 type GameSettings struct {
-	Region         string `json:"region"`
-	Mode           string `json:"mode"`
-	MapLayers      bool   `json:"mapLayers"`
-	ShowRegion     bool   `json:"showRegion"`
-	TurnAround     bool   `json:"turnAround"`
-	Zoom           bool   `json:"zoom"`
-	TargetOriginal bool   `json:"targetOriginal"`
+	Region         string        `json:"region"`
+	Mode           string        `json:"mode"`
+	MapLayers      bool          `json:"mapLayers"`
+	ShowRegion     bool          `json:"showRegion"`
+	TurnAround     bool          `json:"turnAround"`
+	Zoom           bool          `json:"zoom"`
+	TargetOriginal bool          `json:"targetOriginal"`
+	CustomRegion   *CustomRegion `json:"customRegion,omitempty"`
 }
 
 type Location struct {
@@ -73,6 +91,72 @@ var (
 	sessions      = make(map[string]*GameSession)
 	sessionsMutex sync.RWMutex
 )
+
+// Parse custom region from JSON map
+func parseCustomRegion(data map[string]interface{}) *CustomRegion {
+	cr := &CustomRegion{}
+	
+	if name, ok := data["name"].(string); ok {
+		cr.Name = name
+	}
+	
+	if boundsMap, ok := data["bounds"].(map[string]interface{}); ok {
+		cr.Bounds = CustomRegionBounds{
+			MinLat: getFloat(boundsMap, "minLat"),
+			MaxLat: getFloat(boundsMap, "maxLat"),
+			MinLon: getFloat(boundsMap, "minLon"),
+			MaxLon: getFloat(boundsMap, "maxLon"),
+		}
+	}
+	
+	if paths, ok := data["paths"].([]interface{}); ok {
+		for _, pathData := range paths {
+			if pathArray, ok := pathData.([]interface{}); ok {
+				var path [][]float64
+				for _, pointData := range pathArray {
+					if pointArray, ok := pointData.([]interface{}); ok && len(pointArray) >= 2 {
+						lat := getFloatFromInterface(pointArray[0])
+						lon := getFloatFromInterface(pointArray[1])
+						path = append(path, []float64{lat, lon})
+					}
+				}
+				cr.Paths = append(cr.Paths, path)
+			}
+		}
+	}
+	
+	// Optional center (for search-based regions)
+	if centerMap, ok := data["center"].(map[string]interface{}); ok {
+		cr.Center = &Location{
+			Lat: getFloat(centerMap, "lat"),
+			Lon: getFloat(centerMap, "lon"),
+		}
+	}
+	
+	// Optional radius (for search-based regions)
+	if radius, ok := data["radius"].(float64); ok {
+		radiusInt := int(radius)
+		cr.Radius = &radiusInt
+	}
+	
+	return cr
+}
+
+// Helper to get float from map
+func getFloat(m map[string]interface{}, key string) float64 {
+	if val, ok := m[key].(float64); ok {
+		return val
+	}
+	return 0
+}
+
+// Helper to get float from interface
+func getFloatFromInterface(val interface{}) float64 {
+	if f, ok := val.(float64); ok {
+		return f
+	}
+	return 0
+}
 
 // Generate random session code
 func generateSessionCode() string {
@@ -109,6 +193,10 @@ func createSession(owner *Player, initialSettings *GameSettings) *GameSession {
 		settings.TurnAround = initialSettings.TurnAround
 		settings.Zoom = initialSettings.Zoom
 		settings.TargetOriginal = initialSettings.TargetOriginal
+		// Apply custom region if provided
+		if initialSettings.CustomRegion != nil {
+			settings.CustomRegion = initialSettings.CustomRegion
+		}
 	}
 	
 	session := &GameSession{
@@ -410,6 +498,12 @@ func handleMessage(conn *websocket.Conn, player **Player, msg WSMessage) {
 			if targetOriginal, ok := settingsMap["targetOriginal"].(bool); ok {
 				initialSettings.TargetOriginal = targetOriginal
 			}
+			// Parse custom region if provided
+			if customRegion, ok := settingsMap["customRegion"]; ok && customRegion != nil {
+				if crMap, ok := customRegion.(map[string]interface{}); ok {
+					initialSettings.CustomRegion = parseCustomRegion(crMap)
+				}
+			}
 		}
 		
 		session := createSession(*player, initialSettings)
@@ -517,6 +611,14 @@ func handleMessage(conn *websocket.Conn, player **Player, msg WSMessage) {
 		}
 		if targetOriginal, ok := payload["targetOriginal"].(bool); ok {
 			session.Settings.TargetOriginal = targetOriginal
+		}
+		// Handle custom region data
+		if customRegion, ok := payload["customRegion"]; ok {
+			if customRegion == nil {
+				session.Settings.CustomRegion = nil
+			} else if crMap, ok := customRegion.(map[string]interface{}); ok {
+				session.Settings.CustomRegion = parseCustomRegion(crMap)
+			}
 		}
 		session.mutex.Unlock()
 		

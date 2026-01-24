@@ -219,27 +219,60 @@ function handleWebSocketMessage(msg) {
 }
 
 // Get the current region selection from UI (since gameState.selectedRegion may not be set for dropdowns)
+// Returns { region: string, customRegion: object|null }
 function getCurrentRegionSelection() {
+    let region = null;
+    let customRegion = null;
+    
     // Check for selected region button with data-region attribute
     const selectedBtn = document.querySelector('.region-btn.selected');
     if (selectedBtn) {
-        const region = selectedBtn.getAttribute('data-region');
-        if (region) {
-            return region;
+        region = selectedBtn.getAttribute('data-region');
+        
+        // Check if it's a saved custom region button
+        const customRegionName = selectedBtn.getAttribute('data-custom-region');
+        if (customRegionName) {
+            region = 'custom_' + customRegionName;
+            // Get the custom region data from gameState or localStorage
+            if (gameState.customRegion) {
+                customRegion = gameState.customRegion;
+            } else {
+                // Try to load from saved regions
+                const savedRegions = getSavedCustomRegions();
+                const saved = savedRegions.find(r => r.name === customRegionName);
+                if (saved) {
+                    customRegion = saved.region;
+                }
+            }
+        }
+        // Check if it's a search location (custom region with 'custom' as region)
+        else if (region === 'custom' && gameState.customRegion) {
+            customRegion = gameState.customRegion;
         }
     }
     
-    // Check dropdowns
-    const dropdowns = ['citySelect', 'czechRegionSelect', 'czechDistrictSelect', 'historicalRegionSelect'];
-    for (const selectId of dropdowns) {
-        const select = document.getElementById(selectId);
-        if (select && select.value) {
-            return select.value;
+    // Check dropdowns if no region found
+    if (!region) {
+        const dropdowns = ['citySelect', 'czechRegionSelect', 'czechDistrictSelect', 'historicalRegionSelect'];
+        for (const selectId of dropdowns) {
+            const select = document.getElementById(selectId);
+            if (select && select.value) {
+                region = select.value;
+                break;
+            }
         }
     }
     
     // Fall back to gameState
-    return gameState.selectedRegion || 'czechia';
+    if (!region) {
+        region = gameState.selectedRegion || 'czechia';
+        // If it's a custom region, get the data
+        if ((region === 'custom' || region.startsWith('custom_')) && gameState.customRegion) {
+            customRegion = gameState.customRegion;
+        }
+    }
+    
+    return { region, customRegion };
 }
 
 // Create session
@@ -247,9 +280,9 @@ function createSession(nick, icon) {
     connectWebSocket();
     
     // Get current selection from UI (more reliable than gameState for dropdowns)
-    const currentRegion = getCurrentRegionSelection();
+    const { region, customRegion } = getCurrentRegionSelection();
     const currentSettings = {
-        region: currentRegion,
+        region: region,
         mode: gameState.selectedMode || 'static',
         mapLayers: gameState.preferences.mapLayers,
         showRegion: gameState.preferences.showRegion,
@@ -257,6 +290,11 @@ function createSession(nick, icon) {
         zoom: gameState.preferences.zoom,
         targetOriginal: gameState.preferences.targetOriginal
     };
+    
+    // Include custom region data if applicable
+    if (customRegion) {
+        currentSettings.customRegion = customRegion;
+    }
     
     // Wait for connection then send
     setTimeout(() => {
@@ -439,6 +477,17 @@ function reEnableControls() {
 // Export to window for app.js access
 window.reEnableControls = reEnableControls;
 
+// Send custom region update (called from app.js after search modal closes or drawn region is saved)
+function sendCustomRegionUpdate(customRegion, regionId = 'custom') {
+    if (multiplayerState.sessionCode && multiplayerState.isOwner) {
+        sendWS('updateSettings', { 
+            region: regionId, 
+            customRegion: customRegion 
+        });
+    }
+}
+window.sendCustomRegionUpdate = sendCustomRegionUpdate;
+
 // Enable owner controls
 function enableOwnerControls() {
     // Enable region and mode buttons
@@ -458,10 +507,27 @@ function enableOwnerControls() {
             const dropdown = btn.querySelector('select');
             if (dropdown && dropdown.value) {
                 // Send the dropdown's current value
-                sendWS('updateSettings', { region: dropdown.value });
+                sendWS('updateSettings', { region: dropdown.value, customRegion: null });
+            } else if (btn.classList.contains('saved-custom-region-btn')) {
+                // Handle saved custom region button
+                const customRegionName = btn.getAttribute('data-custom-region');
+                if (customRegionName) {
+                    const savedRegions = getSavedCustomRegions();
+                    const saved = savedRegions.find(r => r.name === customRegionName);
+                    if (saved) {
+                        sendWS('updateSettings', { 
+                            region: 'custom_' + customRegionName, 
+                            customRegion: saved.region 
+                        });
+                    }
+                }
+            } else if (btn.id === 'searchLocationBtn') {
+                // Handle search location button - the modal will be opened by app.js
+                // After modal closes and customRegion is set, we need to send the update
+                // This is handled separately via the sendCustomRegionUpdate function
             } else if (btn.dataset.region && !dropdown) {
                 // Only send if the button has a direct region (not a dropdown container)
-                sendWS('updateSettings', { region: btn.dataset.region });
+                sendWS('updateSettings', { region: btn.dataset.region, customRegion: null });
             }
         });
     });
@@ -479,7 +545,7 @@ function enableOwnerControls() {
         if (select) {
             select.addEventListener('change', () => {
                 if (select.value) {
-                    sendWS('updateSettings', { region: select.value });
+                    sendWS('updateSettings', { region: select.value, customRegion: null });
                 }
             });
         }
@@ -536,8 +602,26 @@ function applyMultiplayerSettings() {
         btn.classList.remove('selected');
     });
     
-    // Handle dropdown-based selections (cities, districts, czech regions, historical regions)
+    // Clear custom region if not a custom region
     const region = settings.region;
+    if (region !== 'custom' && !region.startsWith('custom_')) {
+        gameState.customRegion = null;
+        // Also hide search location clear button if it exists
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        if (clearSearchBtn) {
+            clearSearchBtn.style.display = 'none';
+        }
+        // Reset search button text
+        const searchLocationBtn = document.getElementById('searchLocationBtn');
+        if (searchLocationBtn) {
+            const regionNameEl = searchLocationBtn.querySelector('.region-name');
+            if (regionNameEl) {
+                regionNameEl.textContent = t('region.search_location');
+            }
+        }
+    }
+    
+    // Handle dropdown-based selections (cities, districts, czech regions, historical regions)
     
     // Try to match direct region button first
     const directBtn = document.querySelector(`.region-btn[data-region="${region}"]`);
@@ -604,6 +688,39 @@ function applyMultiplayerSettings() {
                 }
             }
         }
+        // Check if it's a saved custom region (custom_<name>)
+        else if (region.startsWith('custom_')) {
+            const customRegionName = region.substring(7);
+            const savedBtn = document.querySelector(`.saved-custom-region-btn[data-custom-region="${customRegionName}"]`);
+            if (savedBtn) {
+                savedBtn.classList.add('selected');
+            }
+            // Apply custom region data to gameState
+            if (settings.customRegion) {
+                gameState.customRegion = settings.customRegion;
+                gameState.selectedRegion = region;
+            }
+        }
+        // Check if it's a search-based custom region
+        else if (region === 'custom' && settings.customRegion) {
+            const searchLocationBtn = document.getElementById('searchLocationBtn');
+            if (searchLocationBtn) {
+                searchLocationBtn.classList.add('selected');
+                // Update button text to show the region name
+                const regionNameEl = searchLocationBtn.querySelector('.region-name');
+                if (regionNameEl && settings.customRegion.name) {
+                    regionNameEl.textContent = settings.customRegion.name;
+                }
+                // Show clear button
+                const clearSearchBtn = document.getElementById('clearSearchBtn');
+                if (clearSearchBtn) {
+                    clearSearchBtn.style.display = 'block';
+                }
+            }
+            // Apply custom region data to gameState
+            gameState.customRegion = settings.customRegion;
+            gameState.selectedRegion = 'custom';
+        }
     }
     
     // Select mode
@@ -642,10 +759,15 @@ async function startMultiplayerGame() {
     gameState.selectedRegion = multiplayerState.settings.region;
     gameState.selectedMode = multiplayerState.settings.mode;
     
-    // Load boundary for selected region (just like single player does)
-    if (gameState.selectedRegion && REGIONS[gameState.selectedRegion]) {
-        console.log(`🔄 Loading boundary for multiplayer region: ${gameState.selectedRegion}`);
-        await loadBoundaryFile(gameState.selectedRegion);
+    // Handle custom regions - apply the region data from settings
+    const region = multiplayerState.settings.region;
+    if ((region === 'custom' || region.startsWith('custom_')) && multiplayerState.settings.customRegion) {
+        gameState.customRegion = multiplayerState.settings.customRegion;
+        console.log('🔄 Using custom region for multiplayer:', gameState.customRegion.name);
+    } else if (region && REGIONS[region]) {
+        // Load boundary for built-in selected region (just like single player does)
+        console.log(`🔄 Loading boundary for multiplayer region: ${region}`);
+        await loadBoundaryFile(region);
     }
     
     // Hide start screen and start game

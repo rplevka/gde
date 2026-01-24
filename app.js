@@ -472,6 +472,8 @@ function getSavedCustomRegions() {
         return [];
     }
 }
+// Export for multiplayer.js
+window.getSavedCustomRegions = getSavedCustomRegions;
 
 function saveCustomRegion(name, region) {
     try {
@@ -1039,6 +1041,11 @@ function setupStartScreen() {
                     localStorage.removeItem('gde_lastRegion');
                 } catch (e) {}
                 
+                // If in multiplayer lobby as owner, send the custom region update
+                if (typeof window.sendCustomRegionUpdate === 'function') {
+                    window.sendCustomRegionUpdate(region, 'custom');
+                }
+                
                 checkStartButton();
             });
         });
@@ -1330,7 +1337,10 @@ function toggleMapSize() {
 
 function initializeMap() {
     // Get the region bounds
-    const region = gameState.selectedRegion === 'custom' && gameState.customRegion 
+    // Check for custom region (either 'custom' or 'custom_<name>')
+    const isCustomRegion = gameState.selectedRegion === 'custom' || 
+                           (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
+    const region = isCustomRegion && gameState.customRegion 
         ? gameState.customRegion 
         : REGIONS[gameState.selectedRegion];
     
@@ -1667,13 +1677,17 @@ async function startNewRound() {
         }
 
         // Reset map view to region bounds
-        const region = gameState.selectedRegion === 'custom' && gameState.customRegion 
+        // Check for custom region (either 'custom' or 'custom_<name>')
+        const isCustomRegion = gameState.selectedRegion === 'custom' || 
+                               (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
+        const region = isCustomRegion && gameState.customRegion 
             ? gameState.customRegion 
             : REGIONS[gameState.selectedRegion];
     
         if (!region) {
             console.error('❌ Region not found:', gameState.selectedRegion);
             console.error('Available regions:', Object.keys(REGIONS));
+            console.error('Custom region:', gameState.customRegion);
             alert(t('alert.regionnotfound'));
             return;
         }
@@ -1779,7 +1793,10 @@ async function startNewRound() {
 
 async function findRandomLocationWithPanorama() {
     // Use custom region if available, otherwise use predefined region
-    const region = gameState.selectedRegion === 'custom' && gameState.customRegion 
+    // Check for custom region (either 'custom' or 'custom_<name>')
+    const isCustomRegion = gameState.selectedRegion === 'custom' || 
+                           (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
+    const region = isCustomRegion && gameState.customRegion 
         ? gameState.customRegion 
         : REGIONS[gameState.selectedRegion];
     
@@ -2042,7 +2059,10 @@ function toRad(degrees) {
 
 // Calculate the diagonal size of the current play region in km
 function getRegionDiagonalKm() {
-    const region = gameState.selectedRegion === 'custom' && gameState.customRegion 
+    // Check for custom region (either 'custom' or 'custom_<name>')
+    const isCustomRegion = gameState.selectedRegion === 'custom' || 
+                           (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
+    const region = isCustomRegion && gameState.customRegion 
         ? gameState.customRegion 
         : REGIONS[gameState.selectedRegion];
     
@@ -2703,6 +2723,11 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
             // Mark draw region button as selected
             document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
             document.getElementById('drawRegionBtn').classList.add('selected');
+            
+            // If in multiplayer lobby as owner, send the custom region update
+            if (typeof window.sendCustomRegionUpdate === 'function') {
+                window.sendCustomRegionUpdate(gameState.customRegion, 'custom');
+            }
             
             // Update the callback to enable start button
             if (checkStartButtonCallback) {
