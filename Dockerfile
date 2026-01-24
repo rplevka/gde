@@ -42,9 +42,6 @@ COPY boundaries/ ./boundaries/
 # Create version.json with build info
 RUN echo "{\"version\":\"${BUILD_VERSION}\",\"date\":\"${BUILD_DATE}\",\"branch\":\"${BUILD_BRANCH}\"}" > version.json
 
-# Copy API keys file if it exists (optional, can be mounted as volume or use env vars)
-COPY api_keys.example.yaml ./
-
 # Expose port 8000
 EXPOSE 8000
 
