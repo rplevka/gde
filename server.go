@@ -588,12 +588,28 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		
-		// Copy headers
+		// Copy headers, skipping hop-by-hop, browser-origin, and Sec-* headers
+		// that would cause the upstream API to reject the request
+		skipHeaders := map[string]bool{
+			"Host":       true,
+			"Origin":     true,
+			"Referer":    true,
+			"Cookie":     true,
+			"Connection": true,
+			"Upgrade":    true,
+		}
 		for key, values := range r.Header {
+			canonical := http.CanonicalHeaderKey(key)
+			if skipHeaders[canonical] || strings.HasPrefix(canonical, "Sec-") {
+				continue
+			}
 			for _, value := range values {
 				proxyReq.Header.Add(key, value)
 			}
 		}
+
+		// Replace the SDK's X-Mapy-Api-Key header (sent as "proxy") with the real key
+		proxyReq.Header.Set("X-Mapy-Api-Key", apiKey.Value)
 		
 		// Make request to Mapy.cz
 		resp, err := httpClient.Do(proxyReq)
