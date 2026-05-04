@@ -377,6 +377,8 @@ let gameState = {
     resultMap: null,
     drawMap: null,
     guessMarker: null,
+    correctMarker: null,
+    resultLine: null,
     selectedRegion: 'czechia',
     selectedMode: 'explorer',
     currentMapLayer: 'basic',
@@ -1598,6 +1600,18 @@ function handleTimeOut() {
     // Update total score (no change)
     updateScoreDisplay();
     
+    // Show correct location on the minimap
+    const actualLocation = gameState.preferences.targetOriginal ? gameState.originalLocation : getCurrentPanoramaPosition();
+    gameState.correctMarker = L.marker([actualLocation.lat, actualLocation.lon], {
+        icon: L.divIcon({
+            className: 'custom-marker',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+            html: '<div style="background: #44ff44; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>'
+        })
+    }).addTo(gameState.map);
+    gameState.map.setView([actualLocation.lat, actualLocation.lon], 10);
+    
     // Show result
     showTimeOutResult();
 }
@@ -1794,6 +1808,14 @@ async function startNewRound() {
         if (gameState.guessMarker) {
             gameState.map.removeLayer(gameState.guessMarker);
             gameState.guessMarker = null;
+        }
+        if (gameState.correctMarker) {
+            gameState.map.removeLayer(gameState.correctMarker);
+            gameState.correctMarker = null;
+        }
+        if (gameState.resultLine) {
+            gameState.map.removeLayer(gameState.resultLine);
+            gameState.resultLine = null;
         }
         gameState.guessLocation = null;
 
@@ -2120,6 +2142,32 @@ function submitGuess() {
     };
     gameState.rounds.push(roundResult);
     gameState.totalScore += score;
+
+    // Show correct location and line on the guess minimap
+    gameState.correctMarker = L.marker([targetLocation.lat, targetLocation.lon], {
+        icon: L.divIcon({
+            className: 'custom-marker',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+            html: '<div style="background: #44ff44; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>'
+        })
+    }).addTo(gameState.map);
+
+    gameState.resultLine = L.polyline([
+        [targetLocation.lat, targetLocation.lon],
+        [gameState.guessLocation.lat, gameState.guessLocation.lon]
+    ], {
+        color: '#667eea',
+        weight: 3,
+        opacity: 0.7
+    }).addTo(gameState.map);
+
+    // Fit minimap to show both markers
+    const bounds = L.latLngBounds([
+        [targetLocation.lat, targetLocation.lon],
+        [gameState.guessLocation.lat, gameState.guessLocation.lon]
+    ]);
+    gameState.map.fitBounds(bounds, { padding: [30, 30] });
 
     // Show result
     showRoundResult(roundResult);
