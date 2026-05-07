@@ -379,6 +379,9 @@ let gameState = {
     guessMarker: null,
     correctMarker: null,
     resultLine: null,
+    explorerPath: [], // Track positions visited in explorer mode
+    explorerPathLine: null, // Polyline on minimap showing explorer path
+    startMarker: null, // Starting point marker on minimap
     selectedRegion: 'czechia',
     selectedMode: 'explorer',
     currentMapLayer: 'basic',
@@ -1588,13 +1591,16 @@ function handleTimeOut() {
     gameState.roundSubmitted = true;
     
     // Record round with 0 score (no guess made)
+    const showStartMarker = gameState.selectedMode === 'explorer' && !gameState.preferences.targetOriginal;
     gameState.rounds.push({
         round: gameState.currentRound,
         score: 0,
         distance: null,
         actualLocation: gameState.preferences.targetOriginal ? gameState.originalLocation : getCurrentPanoramaPosition(),
         guessLocation: null, // No guess was made
-        timeOut: true
+        timeOut: true,
+        explorerPath: gameState.selectedMode === 'explorer' ? [...gameState.explorerPath] : null,
+        startLocation: showStartMarker ? { ...gameState.originalLocation } : null
     });
     
     // Update total score (no change)
@@ -1610,8 +1616,29 @@ function handleTimeOut() {
             html: '<div style="background: #44ff44; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>'
         })
     }).addTo(gameState.map);
+
+    // Show starting point marker when scoring from current position (timeout case)
+    if (showStartMarker) {
+        gameState.startMarker = L.marker([gameState.originalLocation.lat, gameState.originalLocation.lon], {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8],
+                html: '<div style="background: #00bcd4; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>'
+            })
+        }).addTo(gameState.map);
+    }
+
     gameState.map.setView([actualLocation.lat, actualLocation.lon], 10);
     
+    // Draw explorer path on minimap if available (timeout case)
+    if (gameState.selectedMode === 'explorer' && gameState.explorerPath && gameState.explorerPath.length > 1) {
+        gameState.explorerPathLine = L.polyline(
+            gameState.explorerPath.map(p => [p.lat, p.lon]),
+            { color: '#ff9800', weight: 3, opacity: 0.8, dashArray: '6, 8' }
+        ).addTo(gameState.map);
+    }
+
     // Show result
     showTimeOutResult();
 }
@@ -1698,7 +1725,27 @@ function showTimeOutResult() {
             html: '<div style="background: #44ff44; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>'
         })
     }).addTo(gameState.resultMap).bindPopup('Actual Location');
+
+    // Show starting point marker on timeout result map when scoring from current position
+    if (gameState.selectedMode === 'explorer' && !gameState.preferences.targetOriginal) {
+        L.marker([gameState.originalLocation.lat, gameState.originalLocation.lon], {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8],
+                html: '<div style="background: #00bcd4; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>'
+            })
+        }).addTo(gameState.resultMap).bindPopup('Starting Point');
+    }
     
+    // Draw explorer path on timeout result map if available
+    if (gameState.selectedMode === 'explorer' && gameState.explorerPath && gameState.explorerPath.length > 1) {
+        L.polyline(
+            gameState.explorerPath.map(p => [p.lat, p.lon]),
+            { color: '#ff9800', weight: 3, opacity: 0.8, dashArray: '6, 8' }
+        ).addTo(gameState.resultMap);
+    }
+
     // Show modal first
     const modal = document.getElementById('resultModal');
     modal.style.display = 'flex';
@@ -1817,6 +1864,14 @@ async function startNewRound() {
             gameState.map.removeLayer(gameState.resultLine);
             gameState.resultLine = null;
         }
+        if (gameState.explorerPathLine) {
+            gameState.map.removeLayer(gameState.explorerPathLine);
+            gameState.explorerPathLine = null;
+        }
+        if (gameState.startMarker) {
+            gameState.map.removeLayer(gameState.startMarker);
+            gameState.startMarker = null;
+        }
         gameState.guessLocation = null;
 
         // Destroy previous panorama
@@ -1854,6 +1909,7 @@ async function startNewRound() {
         gameState.currentLocation = location;
         gameState.originalLocation = { lat: location.lat, lon: location.lon }; // Store original location
         gameState.currentPanoramaPosition = { lat: location.lat, lon: location.lon }; // Initialize current position
+        gameState.explorerPath = [{ lat: location.lat, lon: location.lon }]; // Start tracking path
     
         // Show/hide reset button based on mode
         const resetBtn = document.getElementById('resetLocationBtn');
@@ -2048,6 +2104,7 @@ async function loadPanorama(lat, lon) {
                 // Store current position for scoring - coordinates are in data.info
                 if (data && data.info && data.info.lat !== undefined && data.info.lon !== undefined) {
                     gameState.currentPanoramaPosition = { lat: data.info.lat, lon: data.info.lon };
+                    gameState.explorerPath.push({ lat: data.info.lat, lon: data.info.lon });
                 }
             });
         }
@@ -2133,12 +2190,15 @@ function submitGuess() {
     const score = calculateScore(distance);
 
     // Store round result
+    const showStartMarker = gameState.selectedMode === 'explorer' && !gameState.preferences.targetOriginal;
     const roundResult = {
         round: gameState.currentRound,
         distance: distance,
         score: score,
         actualLocation: { ...targetLocation },
-        guessLocation: { ...gameState.guessLocation }
+        guessLocation: { ...gameState.guessLocation },
+        explorerPath: gameState.selectedMode === 'explorer' ? [...gameState.explorerPath] : null,
+        startLocation: showStartMarker ? { ...gameState.originalLocation } : null
     };
     gameState.rounds.push(roundResult);
     gameState.totalScore += score;
@@ -2153,6 +2213,18 @@ function submitGuess() {
         })
     }).addTo(gameState.map);
 
+    // Show starting point marker when scoring from current position
+    if (roundResult.startLocation) {
+        gameState.startMarker = L.marker([roundResult.startLocation.lat, roundResult.startLocation.lon], {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8],
+                html: '<div style="background: #00bcd4; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>'
+            })
+        }).addTo(gameState.map);
+    }
+
     gameState.resultLine = L.polyline([
         [targetLocation.lat, targetLocation.lon],
         [gameState.guessLocation.lat, gameState.guessLocation.lon]
@@ -2162,11 +2234,25 @@ function submitGuess() {
         opacity: 0.7
     }).addTo(gameState.map);
 
-    // Fit minimap to show both markers
+    // Draw explorer path on minimap if available
+    if (roundResult.explorerPath && roundResult.explorerPath.length > 1) {
+        gameState.explorerPathLine = L.polyline(
+            roundResult.explorerPath.map(p => [p.lat, p.lon]),
+            { color: '#ff9800', weight: 3, opacity: 0.8, dashArray: '6, 8' }
+        ).addTo(gameState.map);
+    }
+
+    // Fit minimap to show both markers and explorer path
     const bounds = L.latLngBounds([
         [targetLocation.lat, targetLocation.lon],
         [gameState.guessLocation.lat, gameState.guessLocation.lon]
     ]);
+    if (roundResult.explorerPath && roundResult.explorerPath.length > 1) {
+        roundResult.explorerPath.forEach(p => bounds.extend([p.lat, p.lon]));
+    }
+    if (roundResult.startLocation) {
+        bounds.extend([roundResult.startLocation.lat, roundResult.startLocation.lon]);
+    }
     gameState.map.fitBounds(bounds, { padding: [30, 30] });
 
     // Show result
@@ -2309,6 +2395,18 @@ function showRoundResult(result) {
         })
     }).addTo(gameState.resultMap).bindPopup('Actual Location');
 
+    // Show starting point marker when scoring from current position
+    if (result.startLocation) {
+        L.marker([result.startLocation.lat, result.startLocation.lon], {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8],
+                html: '<div style="background: #00bcd4; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>'
+            })
+        }).addTo(gameState.resultMap).bindPopup('Starting Point');
+    }
+
     // Only add guess marker and line if guess was made
     if (result.guessLocation) {
         L.marker([result.guessLocation.lat, result.guessLocation.lon], {
@@ -2329,6 +2427,14 @@ function showRoundResult(result) {
             weight: 3,
             opacity: 0.7
         }).addTo(gameState.resultMap);
+    }
+
+    // Draw explorer path on result map if available
+    if (result.explorerPath && result.explorerPath.length > 1) {
+        L.polyline(
+            result.explorerPath.map(p => [p.lat, p.lon]),
+            { color: '#ff9800', weight: 3, opacity: 0.8, dashArray: '6, 8' }
+        ).addTo(gameState.resultMap);
     }
 
     // Show modal first
@@ -2371,13 +2477,19 @@ function showRoundResult(result) {
     setTimeout(() => {
         gameState.resultMap.invalidateSize();
         
-        // Fit bounds to show markers
+        // Fit bounds to show markers and explorer path
         if (result.guessLocation) {
             // Show both markers
             const bounds = L.latLngBounds([
                 [result.actualLocation.lat, result.actualLocation.lon],
                 [result.guessLocation.lat, result.guessLocation.lon]
             ]);
+            if (result.explorerPath && result.explorerPath.length > 1) {
+                result.explorerPath.forEach(p => bounds.extend([p.lat, p.lon]));
+            }
+            if (result.startLocation) {
+                bounds.extend([result.startLocation.lat, result.startLocation.lon]);
+            }
             gameState.resultMap.fitBounds(bounds, { padding: [50, 50] });
         } else {
             // Only actual location, already centered
