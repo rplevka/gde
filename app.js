@@ -1609,6 +1609,7 @@ function handleTimeOut() {
     // Show correct location on the minimap
     const actualLocation = gameState.preferences.targetOriginal ? gameState.originalLocation : getCurrentPanoramaPosition();
     gameState.correctMarker = L.marker([actualLocation.lat, actualLocation.lon], {
+        zIndexOffset: 300,
         icon: L.divIcon({
             className: 'custom-marker',
             iconSize: [20, 20],
@@ -1620,6 +1621,7 @@ function handleTimeOut() {
     // Show starting point marker when scoring from current position (timeout case)
     if (showStartMarker) {
         gameState.startMarker = L.marker([gameState.originalLocation.lat, gameState.originalLocation.lon], {
+            zIndexOffset: 100,
             icon: L.divIcon({
                 className: 'custom-marker',
                 iconSize: [16, 16],
@@ -1718,6 +1720,7 @@ function showTimeOutResult() {
     
     // Add actual location marker (green)
     L.marker([actualLocation.lat, actualLocation.lon], {
+        zIndexOffset: 300,
         icon: L.divIcon({
             className: 'custom-marker',
             iconSize: [20, 20],
@@ -1729,6 +1732,7 @@ function showTimeOutResult() {
     // Show starting point marker on timeout result map when scoring from current position
     if (gameState.selectedMode === 'explorer' && !gameState.preferences.targetOriginal) {
         L.marker([gameState.originalLocation.lat, gameState.originalLocation.lon], {
+            zIndexOffset: 100,
             icon: L.divIcon({
                 className: 'custom-marker',
                 iconSize: [16, 16],
@@ -2130,6 +2134,7 @@ function placeGuess(lat, lon) {
 
     // Add new marker
     gameState.guessMarker = L.marker([lat, lon], {
+        zIndexOffset: 200,
         icon: L.divIcon({
             className: 'guess-marker',
             iconSize: [20, 20],
@@ -2205,6 +2210,7 @@ function submitGuess() {
 
     // Show correct location and line on the guess minimap
     gameState.correctMarker = L.marker([targetLocation.lat, targetLocation.lon], {
+        zIndexOffset: 300,
         icon: L.divIcon({
             className: 'custom-marker',
             iconSize: [20, 20],
@@ -2216,6 +2222,7 @@ function submitGuess() {
     // Show starting point marker when scoring from current position
     if (roundResult.startLocation) {
         gameState.startMarker = L.marker([roundResult.startLocation.lat, roundResult.startLocation.lon], {
+            zIndexOffset: 100,
             icon: L.divIcon({
                 className: 'custom-marker',
                 iconSize: [16, 16],
@@ -2387,6 +2394,7 @@ function showRoundResult(result) {
 
     // Add actual location marker (green)
     L.marker([result.actualLocation.lat, result.actualLocation.lon], {
+        zIndexOffset: 300,
         icon: L.divIcon({
             className: 'custom-marker',
             iconSize: [20, 20],
@@ -2398,6 +2406,7 @@ function showRoundResult(result) {
     // Show starting point marker when scoring from current position
     if (result.startLocation) {
         L.marker([result.startLocation.lat, result.startLocation.lon], {
+            zIndexOffset: 100,
             icon: L.divIcon({
                 className: 'custom-marker',
                 iconSize: [16, 16],
@@ -2410,6 +2419,7 @@ function showRoundResult(result) {
     // Only add guess marker and line if guess was made
     if (result.guessLocation) {
         L.marker([result.guessLocation.lat, result.guessLocation.lon], {
+            zIndexOffset: 200,
             icon: L.divIcon({
                 className: 'custom-marker',
                 iconSize: [20, 20],
