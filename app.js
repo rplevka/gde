@@ -2629,6 +2629,16 @@ function updateScoreDisplay() {
     }
     
     document.getElementById('totalScore').textContent = gameState.totalScore;
+    
+    // Show average score in infinite mode
+    const avgDisplay = document.getElementById('avgScoreDisplay');
+    if (gameState.preferences.infiniteMode && gameState.rounds.length > 0) {
+        avgDisplay.style.display = 'flex';
+        const avg = Math.round(gameState.totalScore / gameState.rounds.length);
+        document.getElementById('avgScore').textContent = avg;
+    } else {
+        avgDisplay.style.display = 'none';
+    }
 }
 
 function returnToStartScreen() {

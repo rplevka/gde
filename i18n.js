@@ -160,6 +160,7 @@ const translations = {
         // Game Header
         'header.round': 'Round:',
         'header.score': 'Total Score:',
+        'header.avg': 'Avg:',
         'header.time': 'Time:',
         
         // Map Overlay
@@ -447,6 +448,7 @@ const translations = {
         // Game Header
         'header.round': 'Kolo:',
         'header.score': 'Celkem bodů:',
+        'header.avg': 'Průměr:',
         'header.time': 'Čas:',
         
         // Map Overlay
