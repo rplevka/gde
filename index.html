@@ -114,6 +114,10 @@
         <header style="display: none;">
             <h1 class="game-title" data-i18n="app.title">🌍 GDE SU?!</h1>
             <div class="score-container">
+                <div class="score-item" id="walkDistanceDisplay" style="display: none;">
+                    <span class="label">🚶</span>
+                    <span id="walkDistanceValue">0 m</span>
+                </div>
                 <div class="score-item" id="timerDisplay" style="display: none;">
                     <span class="label" data-i18n="header.time">⏱️ Time:</span>
                     <span id="timerValue">2:00</span>
@@ -183,6 +187,7 @@
                 <h2 id="resultTitle" data-i18n="result.title">Round Result</h2>
                 <div id="resultDetails">
                     <p><strong data-i18n="result.distance">Distance:</strong> <span id="resultDistance"></span></p>
+                    <p id="resultWalkDistanceRow" style="display: none;"><strong>🚶 <span data-i18n="result.walked">Walked:</span></strong> <span id="resultWalkDistance"></span></p>
                     <p><strong data-i18n="result.score">Score:</strong> <span id="resultScore"></span></p>
                 </div>
                 <div id="resultMap"></div>

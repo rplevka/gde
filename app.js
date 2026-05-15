@@ -380,6 +380,7 @@ let gameState = {
     correctMarker: null,
     resultLine: null,
     explorerPath: [], // Track positions visited in explorer mode
+    explorerDistance: 0, // Total distance walked in explorer mode (km)
     explorerPathLine: null, // Polyline on minimap showing explorer path
     startMarker: null, // Starting point marker on minimap
     selectedRegion: 'czechia',
@@ -418,6 +419,17 @@ function getCurrentPanoramaPosition() {
     }
     // Fallback to original location
     return gameState.originalLocation;
+}
+
+function updateWalkDistanceDisplay() {
+    const el = document.getElementById('walkDistanceValue');
+    if (!el) return;
+    const dist = gameState.explorerDistance;
+    if (dist < 1) {
+        el.textContent = `${Math.round(dist * 1000)} m`;
+    } else {
+        el.textContent = `${dist.toFixed(2)} km`;
+    }
 }
 
 // LocalStorage helpers for preferences
@@ -1600,7 +1612,8 @@ function handleTimeOut() {
         guessLocation: null, // No guess was made
         timeOut: true,
         explorerPath: gameState.selectedMode === 'explorer' ? [...gameState.explorerPath] : null,
-        startLocation: showStartMarker ? { ...gameState.originalLocation } : null
+        startLocation: showStartMarker ? { ...gameState.originalLocation } : null,
+        walkDistance: gameState.selectedMode === 'explorer' ? gameState.explorerDistance : null
     });
     
     // Update total score (no change)
@@ -1693,6 +1706,18 @@ function showTimeOutResult() {
     document.getElementById('resultTitle').textContent = t('result.timeout');
     document.getElementById('resultDistance').textContent = t('result.noguess');
     document.getElementById('resultScore').textContent = t('result.points', { score: 0 });
+
+    // Show walk distance in timeout result if explorer mode
+    const walkRow = document.getElementById('resultWalkDistanceRow');
+    if (gameState.selectedMode === 'explorer' && gameState.explorerDistance > 0) {
+        walkRow.style.display = '';
+        const dist = gameState.explorerDistance;
+        document.getElementById('resultWalkDistance').textContent = dist < 1
+            ? `${Math.round(dist * 1000)} m`
+            : `${dist.toFixed(2)} km`;
+    } else {
+        walkRow.style.display = 'none';
+    }
     
     // Get actual location
     const actualLocation = gameState.preferences.targetOriginal ? gameState.originalLocation : getCurrentPanoramaPosition();
@@ -1914,13 +1939,18 @@ async function startNewRound() {
         gameState.originalLocation = { lat: location.lat, lon: location.lon }; // Store original location
         gameState.currentPanoramaPosition = { lat: location.lat, lon: location.lon }; // Initialize current position
         gameState.explorerPath = [{ lat: location.lat, lon: location.lon }]; // Start tracking path
+        gameState.explorerDistance = 0; // Reset walk distance
     
-        // Show/hide reset button based on mode
+        // Show/hide reset button and walk distance based on mode
         const resetBtn = document.getElementById('resetLocationBtn');
+        const walkDisplay = document.getElementById('walkDistanceDisplay');
         if (gameState.selectedMode === 'explorer') {
             resetBtn.style.display = 'block';
+            walkDisplay.style.display = 'flex';
+            updateWalkDistanceDisplay();
         } else {
             resetBtn.style.display = 'none';
+            walkDisplay.style.display = 'none';
         }
 
         // Load panorama - retry if it fails
@@ -2107,8 +2137,15 @@ async function loadPanorama(lat, lon) {
             panoData.addListener('pano-place', (data) => {
                 // Store current position for scoring - coordinates are in data.info
                 if (data && data.info && data.info.lat !== undefined && data.info.lon !== undefined) {
-                    gameState.currentPanoramaPosition = { lat: data.info.lat, lon: data.info.lon };
-                    gameState.explorerPath.push({ lat: data.info.lat, lon: data.info.lon });
+                    const newPos = { lat: data.info.lat, lon: data.info.lon };
+                    // Calculate distance from last position
+                    if (gameState.explorerPath.length > 0) {
+                        const lastPos = gameState.explorerPath[gameState.explorerPath.length - 1];
+                        gameState.explorerDistance += calculateDistance(lastPos.lat, lastPos.lon, newPos.lat, newPos.lon);
+                        updateWalkDistanceDisplay();
+                    }
+                    gameState.currentPanoramaPosition = newPos;
+                    gameState.explorerPath.push(newPos);
                 }
             });
         }
@@ -2203,7 +2240,8 @@ function submitGuess() {
         actualLocation: { ...targetLocation },
         guessLocation: { ...gameState.guessLocation },
         explorerPath: gameState.selectedMode === 'explorer' ? [...gameState.explorerPath] : null,
-        startLocation: showStartMarker ? { ...gameState.originalLocation } : null
+        startLocation: showStartMarker ? { ...gameState.originalLocation } : null,
+        walkDistance: gameState.selectedMode === 'explorer' ? gameState.explorerDistance : null
     };
     gameState.rounds.push(roundResult);
     gameState.totalScore += score;
@@ -2361,6 +2399,18 @@ function showRoundResult(result) {
     document.getElementById('resultTitle').textContent = t('result.round', { round: result.round });
     document.getElementById('resultDistance').textContent = result.distance ? `${result.distance.toFixed(2)} ${t('units.km')}` : 'N/A';
     document.getElementById('resultScore').textContent = t('result.points', { score: result.score });
+
+    // Show walk distance if in explorer mode
+    const walkRow = document.getElementById('resultWalkDistanceRow');
+    if (result.walkDistance !== null && result.walkDistance !== undefined) {
+        walkRow.style.display = '';
+        const dist = result.walkDistance;
+        document.getElementById('resultWalkDistance').textContent = dist < 1
+            ? `${Math.round(dist * 1000)} m`
+            : `${dist.toFixed(2)} km`;
+    } else {
+        walkRow.style.display = 'none';
+    }
 
     // Create result map
     const resultMapContainer = document.getElementById('resultMap');
@@ -2638,6 +2688,7 @@ function returnToStartScreen() {
     document.getElementById('nextRound').style.display = 'none';
     document.getElementById('nextRound').disabled = false;
     document.getElementById('resetLocationBtn').style.display = 'none';
+    document.getElementById('walkDistanceDisplay').style.display = 'none';
     
     // Show start screen
     document.getElementById('startScreen').style.display = 'flex';
