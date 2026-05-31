@@ -191,6 +191,11 @@ const translations = {
         'final.breakdown': 'Round Breakdown:',
         'final.round': 'Round {round}:',
         'final.timeout': 'Time out',
+        'final.region': 'Region',
+        'final.avg_distance': 'Avg Distance',
+        'final.best_round': 'Best Round',
+        'final.worst_round': 'Worst Round',
+        'final.total_walked': 'Total Walked',
         
         // Settings Modal
         'settings.title': 'Game Settings',
@@ -479,6 +484,11 @@ const translations = {
         'final.breakdown': 'Přehled kol:',
         'final.round': 'Kolo {round}:',
         'final.timeout': 'Čas vypršel',
+        'final.region': 'Region',
+        'final.avg_distance': 'Prům. vzdálenost',
+        'final.best_round': 'Nejlepší kolo',
+        'final.worst_round': 'Nejhorší kolo',
+        'final.total_walked': 'Celkem nachodeno',
         
         // Settings Modal
         'settings.title': 'Nastavení hry',

@@ -2664,15 +2664,70 @@ function showFinalScore() {
 
     // Create round breakdown
     const breakdownContainer = document.getElementById('roundBreakdown');
-    breakdownContainer.innerHTML = `<h3 style="margin-bottom: 15px;">${t('final.breakdown')}</h3>`;
+    breakdownContainer.innerHTML = '';
+
+    // Game summary stats
+    const summaryDiv = document.createElement('div');
+    summaryDiv.className = 'final-summary';
+
+    // Region name
+    let regionName = '';
+    if (gameState.selectedRegion === 'custom') {
+        regionName = t('region.custom') || 'Custom Region';
+    } else if (REGIONS[gameState.selectedRegion]) {
+        // Prefer i18n translation, fall back to region data
+        const i18nKey = `region.${gameState.selectedRegion}`;
+        const translated = t(i18nKey);
+        if (translated !== i18nKey) {
+            regionName = translated;
+        } else {
+            const region = REGIONS[gameState.selectedRegion];
+            regionName = (currentLanguage === 'cs' && region.name_cz) ? region.name_cz : region.name;
+        }
+    }
+
+    // Best and worst rounds
+    const bestRound = gameState.rounds.reduce((best, r) => r.score > best.score ? r : best, gameState.rounds[0]);
+    const worstRound = gameState.rounds.reduce((worst, r) => r.score < worst.score ? r : worst, gameState.rounds[0]);
+
+    // Total walk distance in explorer mode
+    const totalWalkDistance = gameState.rounds.reduce((sum, r) => sum + (r.walkDistance || 0), 0);
+
+    // Average distance off
+    const avgDistance = gameState.rounds.reduce((sum, r) => sum + (r.distance || 0), 0) / gameState.rounds.length;
+
+    let summaryHTML = `<div class="summary-stats">`;
+    if (regionName) {
+        summaryHTML += `<div class="summary-stat"><span class="summary-label">🗺️ ${t('final.region')}</span><span class="summary-value">${regionName}</span></div>`;
+    }
+    summaryHTML += `<div class="summary-stat"><span class="summary-label">🎯 ${t('final.avg_distance')}</span><span class="summary-value">${avgDistance.toFixed(2)} ${t('units.km')}</span></div>`;
+    summaryHTML += `<div class="summary-stat"><span class="summary-label">⭐ ${t('final.best_round')}</span><span class="summary-value">${t('final.round', { round: bestRound.round })} ${bestRound.score} ${t('units.points')}</span></div>`;
+    summaryHTML += `<div class="summary-stat"><span class="summary-label">💩 ${t('final.worst_round')}</span><span class="summary-value">${t('final.round', { round: worstRound.round })} ${worstRound.score} ${t('units.points')}</span></div>`;
+    if (totalWalkDistance > 0) {
+        const walkText = totalWalkDistance < 1 ? `${Math.round(totalWalkDistance * 1000)} m` : `${totalWalkDistance.toFixed(2)} ${t('units.km')}`;
+        summaryHTML += `<div class="summary-stat"><span class="summary-label">🚶 ${t('final.total_walked')}</span><span class="summary-value">${walkText}</span></div>`;
+    }
+    summaryHTML += `</div>`;
+    summaryDiv.innerHTML = summaryHTML;
+    breakdownContainer.appendChild(summaryDiv);
+
+    // Round breakdown header
+    const breakdownHeader = document.createElement('h3');
+    breakdownHeader.style.marginBottom = '15px';
+    breakdownHeader.style.marginTop = '20px';
+    breakdownHeader.textContent = t('final.breakdown');
+    breakdownContainer.appendChild(breakdownHeader);
 
     gameState.rounds.forEach(round => {
         const roundDiv = document.createElement('div');
         roundDiv.className = 'round-result';
         const distanceText = round.distance !== null ? `${round.distance.toFixed(2)} ${t('units.km')}` : t('final.timeout');
+        const isBest = round === bestRound && gameState.rounds.length > 1;
+        const isWorst = round === worstRound && gameState.rounds.length > 1;
+        const badge = isBest ? ' ⭐' : (isWorst ? ' 💩' : '');
         roundDiv.innerHTML = `
             <div>
-                <strong>${t('final.round', { round: round.round })}</strong> ${distanceText}
+                <strong>${t('final.round', { round: round.round })}</strong> ${distanceText}${badge}
             </div>
             <div class="score">${round.score} ${t('units.points')}</div>
         `;
