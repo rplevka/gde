@@ -400,6 +400,7 @@ let gameState = {
         targetOriginal: true, // Score based on original location (true) or current position (false)
         timeTrial: false, // Enable time trial mode
         timeLimit: 120, // Time limit per round in seconds
+        rounds: 5, // Number of rounds per game
         infiniteMode: false, // Infinite mode - play until user decides to end
         flashMode: false, // Flash mode - show panorama briefly then hide
         flashDuration: 0.5 // How long to show panorama in seconds
@@ -671,12 +672,16 @@ function setupDifficultyPreferences() {
     document.getElementById('pref-flashMode').checked = gameState.preferences.flashMode;
     document.getElementById('pref-flashDuration').value = gameState.preferences.flashDuration;
     document.getElementById('pref-infiniteMode').checked = gameState.preferences.infiniteMode;
+    document.getElementById('pref-rounds').value = gameState.preferences.rounds;
     
     // Show/hide time trial settings based on loaded preference
     document.getElementById('timeTrialSettings').style.display = gameState.preferences.timeTrial ? 'flex' : 'none';
     
     // Show/hide flash mode settings based on loaded preference
     document.getElementById('flashModeSettings').style.display = gameState.preferences.flashMode ? 'flex' : 'none';
+    
+    // Hide round count when infinite mode is on
+    document.getElementById('roundCountSettings').style.display = gameState.preferences.infiniteMode ? 'none' : 'flex';
     
     // Open difficulty modal
     document.getElementById('difficultyPrefsBtn').addEventListener('click', () => {
@@ -747,6 +752,19 @@ function setupDifficultyPreferences() {
     document.getElementById('pref-infiniteMode').addEventListener('change', (e) => {
         gameState.preferences.infiniteMode = e.target.checked;
         savePreferencesToLocalStorage();
+        // Hide/show round count input
+        document.getElementById('roundCountSettings').style.display = e.target.checked ? 'none' : 'flex';
+    });
+    
+    document.getElementById('pref-rounds').addEventListener('change', (e) => {
+        const val = parseInt(e.target.value);
+        if (val > 0) {
+            gameState.preferences.rounds = val;
+            CONFIG.TOTAL_ROUNDS = val;
+            savePreferencesToLocalStorage();
+        } else {
+            e.target.value = gameState.preferences.rounds;
+        }
     });
 }
 
@@ -1151,6 +1169,9 @@ function setupStartScreen() {
 }
 
 async function startGame() {
+    // Apply round count from preferences
+    CONFIG.TOTAL_ROUNDS = gameState.preferences.rounds;
+    
     // Load boundary for selected region if needed
     if (gameState.selectedRegion && REGIONS[gameState.selectedRegion]) {
         console.log(`🔄 Loading boundary for selected region: ${gameState.selectedRegion}`);
