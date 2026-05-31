@@ -1435,6 +1435,107 @@ function toggleMapSize() {
     }, 300);
 }
 
+// Keyboard shortcuts (GeoGuessr-compatible)
+document.addEventListener('keydown', (e) => {
+    // Don't trigger shortcuts when typing in inputs/selects
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+    // Don't trigger when game hasn't started
+    if (!gameState.gameStarted) return;
+
+    switch (e.key) {
+        case ' ':
+            e.preventDefault();
+            if (!gameState.roundSubmitted && gameState.guessLocation) {
+                // Submit guess
+                submitGuess();
+            } else if (gameState.roundSubmitted) {
+                // After submission - advance to next round (works with modal open or minimized)
+                const finalModal = document.getElementById('finalScoreModal');
+                if (finalModal && finalModal.style.display === 'flex') {
+                    document.getElementById('playAgain').click();
+                } else {
+                    const nextBtn = document.getElementById('nextRound');
+                    const quickBtn = document.getElementById('quickNextRound');
+                    if (nextBtn && nextBtn.style.display !== 'none' && !nextBtn.disabled) {
+                        nextBtn.click();
+                    } else if (quickBtn && quickBtn.style.display !== 'none') {
+                        quickBtn.click();
+                    }
+                }
+            }
+            break;
+
+        case 'Enter':
+            // Enter - Next round / Continue (works with modal open or minimized)
+            e.preventDefault();
+            if (gameState.roundSubmitted) {
+                const finalScoreModal = document.getElementById('finalScoreModal');
+                if (finalScoreModal && finalScoreModal.style.display === 'flex') {
+                    document.getElementById('playAgain').click();
+                } else {
+                    const nextRoundBtn = document.getElementById('nextRound');
+                    const quickNextBtn = document.getElementById('quickNextRound');
+                    const resultModal = document.getElementById('resultModal');
+                    if (resultModal && resultModal.style.display === 'flex' && nextRoundBtn && nextRoundBtn.style.display !== 'none' && !nextRoundBtn.disabled) {
+                        nextRoundBtn.click();
+                    } else if (quickNextBtn && quickNextBtn.style.display !== 'none') {
+                        quickNextBtn.click();
+                    }
+                }
+            }
+            break;
+
+        case 'Escape':
+            // Escape - Close or minimize modals
+            const closableModals = ['finalScoreModal', 'difficultyModal'];
+            let handled = false;
+            // Result modal gets minimized (not closed) so player can restore it
+            const resultModalEl = document.getElementById('resultModal');
+            if (resultModalEl && resultModalEl.style.display === 'flex') {
+                document.getElementById('minimizeResult').click();
+                handled = true;
+            }
+            if (!handled) {
+                for (const id of closableModals) {
+                    const modal = document.getElementById(id);
+                    if (modal && modal.style.display === 'flex') {
+                        modal.style.display = 'none';
+                        break;
+                    }
+                }
+            }
+            break;
+
+        case '+':
+        case '=':
+            // Zoom map in
+            if (gameState.map) {
+                e.preventDefault();
+                gameState.map.zoomIn();
+            }
+            break;
+
+        case '-':
+            // Zoom map out
+            if (gameState.map) {
+                e.preventDefault();
+                gameState.map.zoomOut();
+            }
+            break;
+
+        case 'r':
+        case 'R':
+            // Reset to starting location (explorer mode)
+            if (gameState.selectedMode === 'explorer' && !gameState.roundSubmitted) {
+                const resetBtn = document.getElementById('resetLocationBtn');
+                if (resetBtn && resetBtn.style.display !== 'none') {
+                    resetBtn.click();
+                }
+            }
+            break;
+    }
+});
+
 function initializeMap() {
     // Get the region bounds
     // Check for custom region (either 'custom' or 'custom_<name>')
