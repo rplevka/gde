@@ -23,7 +23,7 @@ async function loadBoundaryIndex() {
     
     console.log('🔄 Loading boundary index...');
     try {
-        const response = await fetch('boundaries/index.json');
+        const response = await fetch('boundaries/index.json?v=2');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -86,7 +86,7 @@ async function loadBoundaryFile(regionKey) {
     
     console.log(`🔄 Loading boundary for ${regionKey} from ${region.file}...`);
     try {
-        const response = await fetch(`boundaries/${region.file}`);
+        const response = await fetch(`boundaries/${region.file}?v=2`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -379,6 +379,8 @@ let gameState = {
     guessMarker: null,
     correctMarker: null,
     resultLine: null,
+    challengeActive: false,
+    challengeLayers: [],
     explorerPath: [], // Track positions visited in explorer mode
     explorerDistance: 0, // Total distance walked in explorer mode (km)
     explorerPathLine: null, // Polyline on minimap showing explorer path
@@ -660,6 +662,19 @@ function setupPanoramaErrorHandlers() {
     });
 }
 
+function updateChallengeFillPreference() {
+    const challengeFillSettings = document.getElementById('challengeFillSettings');
+    const challengeFillCheckbox = document.getElementById('pref-challengeFill');
+
+    if (challengeFillCheckbox && ChallengeMode) {
+        challengeFillCheckbox.checked = ChallengeMode.getSettings().showFill;
+    }
+
+    if (challengeFillSettings) {
+        challengeFillSettings.style.display = gameState.challengeActive ? '' : 'none';
+    }
+}
+
 function setupDifficultyPreferences() {
     // Apply loaded preferences to UI
     document.getElementById('pref-mapLayers').checked = gameState.preferences.mapLayers;
@@ -673,6 +688,7 @@ function setupDifficultyPreferences() {
     document.getElementById('pref-flashDuration').value = gameState.preferences.flashDuration;
     document.getElementById('pref-infiniteMode').checked = gameState.preferences.infiniteMode;
     document.getElementById('pref-rounds').value = gameState.preferences.rounds;
+    updateChallengeFillPreference();
     
     // Show/hide time trial settings based on loaded preference
     document.getElementById('timeTrialSettings').style.display = gameState.preferences.timeTrial ? 'flex' : 'none';
@@ -685,6 +701,7 @@ function setupDifficultyPreferences() {
     
     // Open difficulty modal
     document.getElementById('difficultyPrefsBtn').addEventListener('click', () => {
+        updateChallengeFillPreference();
         document.getElementById('difficultyModal').style.display = 'flex';
     });
     
@@ -754,6 +771,13 @@ function setupDifficultyPreferences() {
         savePreferencesToLocalStorage();
         // Hide/show round count input
         document.getElementById('roundCountSettings').style.display = e.target.checked ? 'none' : 'flex';
+    });
+
+    document.getElementById('pref-challengeFill').addEventListener('change', (e) => {
+        if (ChallengeMode && ChallengeMode.isActive()) {
+            ChallengeMode.setSetting('showFill', e.target.checked);
+            drawChallengeBoundaries();
+        }
     });
     
     document.getElementById('pref-rounds').addEventListener('change', (e) => {
@@ -1111,10 +1135,10 @@ function setupStartScreen() {
         });
     }
     
-    // Mode selection
-    document.querySelectorAll('.mode-btn').forEach(btn => {
+    // Mode selection (only buttons with data-mode attribute are actual game mode buttons)
+    document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+            document.querySelectorAll('.mode-btn[data-mode]').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
             selectedMode = btn.dataset.mode;
             saveGameSelectionToLocalStorage(selectedRegion, selectedMode);
@@ -1125,7 +1149,7 @@ function setupStartScreen() {
     // Check if start button should be enabled
     function checkStartButton() {
         const startBtn = document.getElementById('startGameBtn');
-        const hasRegion = selectedRegion || gameState.customRegion;
+        const hasRegion = selectedRegion || gameState.customRegion || pendingChallengeType;
         const canStart = hasRegion && selectedMode;
         startBtn.disabled = !canStart;
     }
@@ -1137,6 +1161,35 @@ function setupStartScreen() {
         // Prevent double-click
         if (startBtn.disabled) return;
         startBtn.disabled = true;
+        
+        // Challenge mode start
+        const challengeType = pendingChallengeType;
+        if (challengeType) {
+            try {
+                gameState.selectedMode = selectedMode;
+                await ChallengeMode.start(challengeType, selectedMode);
+                const target = ChallengeMode.getCurrentTarget();
+                if (target) {
+                    gameState.challengeActive = true;
+                    gameState.selectedRegion = target.key;
+                    await loadBoundaryFile('czechia');
+                    await loadBoundaryFile(target.key);
+                    await startGame();
+                    updateChallengeUI();
+                } else {
+                    ChallengeMode.reset();
+                    startBtn.disabled = false;
+                }
+            } catch (e) {
+                console.error('Failed to start challenge:', e);
+                ChallengeMode.reset();
+                gameState.challengeActive = false;
+                gameState.challengeLayers = [];
+                startBtn.disabled = false;
+                alert(t('alert.regionnotfound') || 'Failed to start challenge');
+            }
+            return;
+        }
         
         // Final validation before starting
         const hasRegion = selectedRegion || gameState.customRegion;
@@ -1160,9 +1213,108 @@ function setupStartScreen() {
                 gameState.selectedRegion = selectedRegion;
             }
             gameState.selectedMode = selectedMode;
+            gameState.challengeActive = false;
             await startGame();
         }
     });
+
+    // Challenge Mode buttons — select challenge type (like selecting a region)
+    let pendingChallengeType = null;
+
+    document.getElementById('startDistrictChallenge').addEventListener('click', () => {
+        // Toggle selection
+        if (pendingChallengeType === 'districts') {
+            pendingChallengeType = null;
+            document.getElementById('startDistrictChallenge').classList.remove('selected');
+        } else {
+            pendingChallengeType = 'districts';
+            document.getElementById('startDistrictChallenge').classList.add('selected');
+            document.getElementById('startRegionChallenge').classList.remove('selected');
+            // Deselect regular region buttons
+            document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
+            selectedRegion = null;
+            gameState.customRegion = null;
+        }
+        checkStartButton();
+    });
+
+    document.getElementById('startRegionChallenge').addEventListener('click', () => {
+        // Toggle selection
+        if (pendingChallengeType === 'regions') {
+            pendingChallengeType = null;
+            document.getElementById('startRegionChallenge').classList.remove('selected');
+        } else {
+            pendingChallengeType = 'regions';
+            document.getElementById('startRegionChallenge').classList.add('selected');
+            document.getElementById('startDistrictChallenge').classList.remove('selected');
+            // Deselect regular region buttons
+            document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('selected'));
+            selectedRegion = null;
+            gameState.customRegion = null;
+        }
+        checkStartButton();
+    });
+
+    // Deselect challenge when a regular region is clicked
+    document.querySelectorAll('.region-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (pendingChallengeType) {
+                pendingChallengeType = null;
+                document.getElementById('startDistrictChallenge').classList.remove('selected');
+                document.getElementById('startRegionChallenge').classList.remove('selected');
+            }
+        });
+    });
+
+    document.getElementById('resumeChallenge').addEventListener('click', async () => {
+        try {
+            const type = document.getElementById('resumeChallenge').dataset.challengeType;
+            const resumed = ChallengeMode.resume(type);
+            if (!resumed) {
+                console.error('Failed to resume challenge');
+                return;
+            }
+            gameState.challengeActive = true;
+            gameState.selectedMode = ChallengeMode.getMode() || selectedMode || 'static';
+            updateChallengeFillPreference();
+            const target = ChallengeMode.getCurrentTarget();
+            if (target) {
+                gameState.selectedRegion = target.key;
+                await loadBoundaryFile('czechia');
+                await loadBoundaryFile(target.key);
+                await startGame();
+                updateChallengeUI();
+            } else {
+                // Challenge was complete or no valid target
+                if (ChallengeMode.getProgress().isComplete) {
+                    showChallengeComplete();
+                } else {
+                    ChallengeMode.reset();
+                    gameState.challengeActive = false;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to resume challenge:', e);
+            ChallengeMode.reset();
+            gameState.challengeActive = false;
+            gameState.challengeLayers = [];
+            alert(t('alert.regionnotfound') || 'Failed to resume challenge');
+        }
+    });
+
+    document.getElementById('startFreshChallenge').addEventListener('click', () => {
+        const type = document.getElementById('startFreshChallenge').dataset.challengeType;
+        if (!type) return;
+
+        ChallengeMode.reset(type);
+        gameState.challengeActive = false;
+        gameState.challengeLayers = [];
+        updateChallengeFillPreference();
+        checkChallengeResume();
+    });
+
+    // Check for saved challenge progress on page load
+    checkChallengeResume();
     
     // Initial check for start button state based on preselections
     checkStartButton();
@@ -1188,6 +1340,7 @@ async function startGame() {
     document.getElementById('app').classList.add('game-active');
     
     gameState.gameStarted = true;
+    updateChallengeFillPreference();
 
     // Initialize map
     initializeMap();
@@ -1197,6 +1350,120 @@ async function startGame() {
 
     // Start first round
     await startNewRound();
+}
+
+function checkChallengeResume() {
+    const container = document.getElementById('resumeChallengeContainer');
+    const btn = document.getElementById('resumeChallenge');
+    const startFreshBtn = document.getElementById('startFreshChallenge');
+
+    if (ChallengeMode.hasSavedProgress('districts')) {
+        container.style.display = '';
+        btn.dataset.challengeType = 'districts';
+        btn.textContent = t('challenge.resume_districts');
+        if (startFreshBtn) {
+            startFreshBtn.dataset.challengeType = 'districts';
+        }
+    } else if (ChallengeMode.hasSavedProgress('regions')) {
+        container.style.display = '';
+        btn.dataset.challengeType = 'regions';
+        btn.textContent = t('challenge.resume_regions');
+        if (startFreshBtn) {
+            startFreshBtn.dataset.challengeType = 'regions';
+        }
+    } else {
+        container.style.display = 'none';
+        delete btn.dataset.challengeType;
+        if (startFreshBtn) {
+            delete startFreshBtn.dataset.challengeType;
+        }
+    }
+}
+
+function updateChallengeUI() {
+    // isActive() = challenge in progress; getType() = challenge context exists (even after completion)
+    if (!gameState.challengeActive || !ChallengeMode.isActive()) return;
+
+    const progress = ChallengeMode.getProgress();
+
+    // Update header display
+    const correctDisplay = document.getElementById('challengeCorrectDisplay');
+    const correctCount = document.getElementById('challengeCorrectCount');
+    if (correctDisplay && correctCount) {
+        correctDisplay.style.display = '';
+        correctCount.textContent = `${progress.correctCount}/${progress.total}`;
+    }
+
+    const currentRound = document.getElementById('currentRound');
+    const totalRounds = document.getElementById('totalRounds');
+    if (currentRound && totalRounds) {
+        currentRound.textContent = progress.currentIndex + 1;
+        totalRounds.textContent = progress.total;
+    }
+
+    // Warn user if save failed (progress won't persist on refresh)
+    if (ChallengeMode.isSaveFailed() && !gameState.challengeSaveWarned) {
+        gameState.challengeSaveWarned = true;
+        console.warn('⚠️ Challenge progress could not be saved to localStorage');
+        alert(t('challenge.save_failed') || 'Warning: Cannot save challenge progress. Your progress will be lost if you close the page.');
+    }
+}
+
+function clearChallengeMapLayers() {
+    if (!gameState.map || !gameState.challengeLayers) return;
+
+    gameState.challengeLayers.forEach(layer => {
+        if (gameState.map.hasLayer(layer)) {
+            gameState.map.removeLayer(layer);
+        }
+    });
+    gameState.challengeLayers = [];
+}
+
+function drawChallengeBoundaries() {
+    clearChallengeMapLayers();
+
+    if (!gameState.challengeActive || !ChallengeMode.isActive() || !gameState.map) return;
+
+    const existingLayers = new Set();
+    gameState.map.eachLayer(layer => existingLayers.add(layer));
+
+    // Draw all district/region border outlines
+    const queue = ChallengeMode.getProgress();
+    ChallengeMode.drawBoundariesOnMap(gameState.map, ChallengeMode.getSettings().showFill);
+
+    gameState.map.eachLayer(layer => {
+        if (!existingLayers.has(layer)) {
+            gameState.challengeLayers.push(layer);
+        }
+    });
+}
+
+function drawChallengeLastFill() {
+    if (!gameState.challengeActive || !ChallengeMode.isActive() || !gameState.map) return;
+    if (!ChallengeMode.getSettings().showFill) return;
+
+    const progress = ChallengeMode.getProgress();
+    if (progress.results.length === 0) return;
+
+    const lastResult = progress.results[progress.results.length - 1];
+    const region = REGIONS[lastResult.key];
+    if (!region || !region.paths) return;
+
+    const color = lastResult.correct ? '#4caf50' : '#f44336';
+    const fillOpacity = lastResult.correct ? 0.25 : 0.15;
+
+    region.paths.forEach(path => {
+        const layer = L.polygon(path, {
+            color: color,
+            fillColor: color,
+            fillOpacity: fillOpacity,
+            weight: 1,
+            opacity: 0.6,
+            interactive: false
+        }).addTo(gameState.map);
+        gameState.challengeLayers.push(layer);
+    });
 }
 
 function setupEventListeners() {
@@ -1232,21 +1499,43 @@ function setupEventListeners() {
         if (nextRoundBtn.disabled) return;
         nextRoundBtn.disabled = true;
 
-        // Close result modal and minimized controls
-        document.getElementById('resultModal').style.display = 'none';
-        document.getElementById('minimizedControls').style.display = 'none';
-        
-        // Check if game is complete (not in infinite mode)
-        if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
-            // Game is complete - show final score
-            showFinalScore();
-        } else if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
-            // In multiplayer, notify server to start next round for everyone
-            sendWS('nextRound', {});
-        } else {
-            // Single player - start next round directly
-            gameState.currentRound++;
-            await startNewRound();
+        try {
+            // Close result modal and minimized controls
+            document.getElementById('resultModal').style.display = 'none';
+            document.getElementById('minimizedControls').style.display = 'none';
+            
+            // Check if challenge is complete
+            if (gameState.challengeActive) {
+                const progress = ChallengeMode.getProgress();
+                if (progress.isComplete || !ChallengeMode.isActive()) {
+                    showChallengeComplete();
+                    return;
+                }
+
+                const target = ChallengeMode.getCurrentTarget();
+                if (target) {
+                    gameState.selectedRegion = target.key;
+                    await loadBoundaryFile(target.key);
+                    gameState.currentRound++;
+                    await startNewRound();
+                }
+                return;
+            }
+
+            // Check if game is complete (not in infinite mode)
+            if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
+                // Game is complete - show final score
+                showFinalScore();
+            } else if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
+                // In multiplayer, notify server to start next round for everyone
+                sendWS('nextRound', {});
+            } else {
+                // Single player - start next round directly
+                gameState.currentRound++;
+                await startNewRound();
+            }
+        } finally {
+            nextRoundBtn.disabled = false;
         }
     });
 
@@ -1258,7 +1547,9 @@ function setupEventListeners() {
         
         // Show/hide quick next round button based on game state
         const quickNextBtn = document.getElementById('quickNextRound');
-        if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
+        if (gameState.challengeActive) {
+            quickNextBtn.style.display = ChallengeMode.getProgress().isComplete ? 'none' : 'block';
+        } else if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
             quickNextBtn.style.display = 'none'; // Last round - no next round
         } else {
             quickNextBtn.style.display = 'block';
@@ -1286,26 +1577,58 @@ function setupEventListeners() {
         const quickNextBtn = document.getElementById('quickNextRound');
         if (quickNextBtn.disabled) return;
         quickNextBtn.disabled = true;
-        
-        // Hide minimized controls
-        document.getElementById('minimizedControls').style.display = 'none';
-        
-        // Check if game is complete
-        if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
-            showFinalScore();
-        } else if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
-            sendWS('nextRound', {});
-        } else {
-            gameState.currentRound++;
-            await startNewRound();
+
+        try {
+            // Hide minimized controls
+            document.getElementById('minimizedControls').style.display = 'none';
+
+            if (gameState.challengeActive) {
+                const progress = ChallengeMode.getProgress();
+                if (progress.isComplete || !ChallengeMode.isActive()) {
+                    showChallengeComplete();
+                    return;
+                }
+
+                const target = ChallengeMode.getCurrentTarget();
+                if (target) {
+                    try {
+                        gameState.selectedRegion = target.key;
+                        await loadBoundaryFile(target.key);
+                        gameState.currentRound++;
+                        await startNewRound();
+                    } catch (e) {
+                        console.error('Failed to load next challenge round:', e);
+                        alert(t('alert.regionnotfound') || 'Failed to load next round');
+                    }
+                }
+                return;
+            }
+
+            // Check if game is complete
+            if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
+                showFinalScore();
+            } else if (gameState.isMultiplayer && typeof sendWS !== 'undefined') {
+                sendWS('nextRound', {});
+            } else {
+                gameState.currentRound++;
+                await startNewRound();
+            }
+        } finally {
+            quickNextBtn.disabled = false;
         }
-        
-        quickNextBtn.disabled = false;
     });
 
     // Play again button
     document.getElementById('playAgain').addEventListener('click', () => {
-        document.getElementById('finalScoreModal').style.display = 'none';
+        const finalScoreModal = document.getElementById('finalScoreModal');
+        const challengeComplete = finalScoreModal.dataset.challengeComplete === 'true';
+        finalScoreModal.style.display = 'none';
+
+        if (challengeComplete) {
+            returnToStartScreen();
+            return;
+        }
+
         resetGame();
     });
 
@@ -1560,11 +1883,17 @@ document.addEventListener('keydown', (e) => {
 function initializeMap() {
     // Get the region bounds
     // Check for custom region (either 'custom' or 'custom_<name>')
-    const isCustomRegion = gameState.selectedRegion === 'custom' || 
-                           (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
-    const region = isCustomRegion && gameState.customRegion 
-        ? gameState.customRegion 
-        : REGIONS[gameState.selectedRegion];
+    // In challenge mode, initialize map on entire Czech Republic
+    let region;
+    if (gameState.challengeActive) {
+        region = REGIONS['czechia'];
+    } else {
+        const isCustomRegion = gameState.selectedRegion === 'custom' || 
+                              (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
+        region = isCustomRegion && gameState.customRegion 
+            ? gameState.customRegion 
+            : REGIONS[gameState.selectedRegion];
+    }
     
     // Safety check
     if (!region || !region.bounds) {
@@ -1591,8 +1920,8 @@ function initializeMap() {
         gameState.map.fitBounds(bounds, { padding: [20, 20] });
     }, 100);
 
-    // Add region overlay if preference is enabled
-    if (gameState.preferences.showRegion && region.paths) {
+    // Add region overlay if preference is enabled (not in challenge mode — would reveal target)
+    if (!gameState.challengeActive && gameState.preferences.showRegion && region.paths) {
         console.log(`Adding region overlay with ${region.paths.length} path(s), ${region.paths[0].length} points`);
         region.paths.forEach(path => {
             L.polygon(path, {
@@ -1726,6 +2055,12 @@ function handleTimeOut() {
     
     // Record round with 0 score (no guess made)
     const showStartMarker = gameState.selectedMode === 'explorer' && !gameState.preferences.targetOriginal;
+    let challengeResult = null;
+    if (gameState.challengeActive) {
+        challengeResult = ChallengeMode.submitResult({ lat: 0, lon: 0 }, 0);
+        updateChallengeUI();
+    }
+
     gameState.rounds.push({
         round: gameState.currentRound,
         score: 0,
@@ -1735,7 +2070,8 @@ function handleTimeOut() {
         timeOut: true,
         explorerPath: gameState.selectedMode === 'explorer' ? [...gameState.explorerPath] : null,
         startLocation: showStartMarker ? { ...gameState.originalLocation } : null,
-        walkDistance: gameState.selectedMode === 'explorer' ? gameState.explorerDistance : null
+        walkDistance: gameState.selectedMode === 'explorer' ? gameState.explorerDistance : null,
+        challengeResult: challengeResult
     });
     
     // Update total score (no change)
@@ -1840,6 +2176,23 @@ function showTimeOutResult() {
     } else {
         walkRow.style.display = 'none';
     }
+
+    const challengeRow = document.getElementById('resultChallengeRow');
+    const lastRound = gameState.rounds[gameState.rounds.length - 1];
+    if (gameState.challengeActive && lastRound && lastRound.challengeResult) {
+        challengeRow.style.display = '';
+        const textEl = document.getElementById('resultChallengeText');
+        if (lastRound.challengeResult.correct) {
+            const key = ChallengeMode.getType() === 'regions' ? 'challenge.correct_region' : 'challenge.correct';
+            textEl.textContent = t(key, { name: lastRound.challengeResult.targetName });
+            textEl.className = 'correct';
+        } else {
+            textEl.textContent = t('challenge.incorrect', { name: lastRound.challengeResult.targetName });
+            textEl.className = 'incorrect';
+        }
+    } else {
+        challengeRow.style.display = 'none';
+    }
     
     // Get actual location
     const actualLocation = gameState.preferences.targetOriginal ? gameState.originalLocation : getCurrentPanoramaPosition();
@@ -1907,7 +2260,12 @@ function showTimeOutResult() {
     const nextBtn = document.getElementById('nextRound');
     const minimizeBtn = document.getElementById('minimizeResult');
     
-    if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
+    if (gameState.challengeActive) {
+        const progress = ChallengeMode.getProgress();
+        nextBtn.textContent = progress.isComplete ? t('result.viewfinal') : t('btn.next');
+        nextBtn.style.display = 'inline-block';
+        minimizeBtn.style.display = 'inline-block';
+    } else if (!gameState.preferences.infiniteMode && gameState.currentRound >= CONFIG.TOTAL_ROUNDS) {
         // Last round - hide next button but keep minimize visible
         nextBtn.style.display = 'none';
         minimizeBtn.style.display = 'inline-block';
@@ -1975,14 +2333,20 @@ async function startNewRound() {
         }
 
         // Reset map view to region bounds
-        // Check for custom region (either 'custom' or 'custom_<name>')
-        const isCustomRegion = gameState.selectedRegion === 'custom' || 
-                               (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
-        const region = isCustomRegion && gameState.customRegion 
-            ? gameState.customRegion 
-            : REGIONS[gameState.selectedRegion];
+        // In challenge mode, show entire Czech Republic (don't reveal target district)
+        let mapRegion;
+        if (gameState.challengeActive) {
+            mapRegion = REGIONS['czechia'];
+        } else {
+            // Check for custom region (either 'custom' or 'custom_<name>')
+            const isCustomRegion = gameState.selectedRegion === 'custom' || 
+                                   (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
+            mapRegion = isCustomRegion && gameState.customRegion 
+                ? gameState.customRegion 
+                : REGIONS[gameState.selectedRegion];
+        }
     
-        if (!region) {
+        if (!mapRegion) {
             console.error('❌ Region not found:', gameState.selectedRegion);
             console.error('Available regions:', Object.keys(REGIONS));
             console.error('Custom region:', gameState.customRegion);
@@ -1990,17 +2354,27 @@ async function startNewRound() {
             return;
         }
     
-        if (!region.bounds) {
-            console.error('❌ Region bounds not found for:', gameState.selectedRegion, region);
+        if (!mapRegion.bounds) {
+            console.error('❌ Region bounds not found for:', gameState.selectedRegion, mapRegion);
             alert(t('alert.boundsnotfound'));
             return;
         }
     
         const bounds = L.latLngBounds(
-            [region.bounds.minLat, region.bounds.minLon],
-            [region.bounds.maxLat, region.bounds.maxLon]
+            [mapRegion.bounds.minLat, mapRegion.bounds.minLon],
+            [mapRegion.bounds.maxLat, mapRegion.bounds.maxLon]
         );
         gameState.map.fitBounds(bounds, { padding: [20, 20] });
+
+        // Draw challenge boundaries on minimap (incremental: just add latest fill)
+        if (gameState.challengeActive) {
+            if (gameState.challengeLayers.length === 0) {
+                drawChallengeBoundaries();
+            } else {
+                drawChallengeLastFill();
+            }
+        }
+        updateChallengeUI();
 
         // Clear previous guess
         if (gameState.guessMarker) {
@@ -2052,6 +2426,28 @@ async function startNewRound() {
             // Single player - just find a location
             location = await findRandomLocationWithPanorama();
             if (!location) {
+                // Challenge mode: skip this district/region and move to next
+                if (gameState.challengeActive && ChallengeMode && ChallengeMode.isActive()) {
+                    console.log('⏭️ Challenge: no panorama found, skipping district');
+                    ChallengeMode.submitResult({ lat: 0, lon: 0 }, 0);
+                    updateChallengeUI();
+
+                    const progress = ChallengeMode.getProgress();
+                    if (progress.isComplete) {
+                        showChallengeComplete();
+                        return;
+                    }
+
+                    const target = ChallengeMode.getCurrentTarget();
+                    if (target) {
+                        gameState.selectedRegion = target.key;
+                        await loadBoundaryFile(target.key);
+                        gameState.startingNewRound = false;
+                        gameState.currentRound++;
+                        await startNewRound();
+                    }
+                    return;
+                }
                 showPanoramaErrorModal();
                 return;
             }
@@ -2125,7 +2521,7 @@ async function findRandomLocationWithPanorama() {
     console.log('Region bounds:', region.bounds);
     
     // Use more attempts for regions with polygon paths since we're filtering by polygon
-    const maxAttempts = region.paths ? CONFIG.MAX_ATTEMPTS_PER_LOCATION * 20 : CONFIG.MAX_ATTEMPTS_PER_LOCATION;
+    const maxAttempts = region.paths ? CONFIG.MAX_ATTEMPTS_PER_LOCATION * 5 : CONFIG.MAX_ATTEMPTS_PER_LOCATION;
     let attempts = 0;
     const debugAttempts = []; // Track all attempts for debugging
     let insideCount = 0;
@@ -2353,6 +2749,13 @@ function submitGuess() {
     // Calculate score
     const score = calculateScore(distance);
 
+    // Challenge mode: submit result before creating roundResult
+    let challengeResult = null;
+    if (gameState.challengeActive) {
+        challengeResult = ChallengeMode.submitResult(gameState.guessLocation, score);
+        updateChallengeUI();
+    }
+
     // Store round result
     const showStartMarker = gameState.selectedMode === 'explorer' && !gameState.preferences.targetOriginal;
     const roundResult = {
@@ -2363,7 +2766,8 @@ function submitGuess() {
         guessLocation: { ...gameState.guessLocation },
         explorerPath: gameState.selectedMode === 'explorer' ? [...gameState.explorerPath] : null,
         startLocation: showStartMarker ? { ...gameState.originalLocation } : null,
-        walkDistance: gameState.selectedMode === 'explorer' ? gameState.explorerDistance : null
+        walkDistance: gameState.selectedMode === 'explorer' ? gameState.explorerDistance : null,
+        challengeResult: challengeResult
     };
     gameState.rounds.push(roundResult);
     gameState.totalScore += score;
@@ -2446,6 +2850,15 @@ function toRad(degrees) {
 
 // Calculate the diagonal size of the current play region in km
 function getRegionDiagonalKm() {
+    // In challenge mode, player guesses on entire Czech Republic map
+    // so scoring should use CZ diagonal, not the tiny target district
+    if (gameState.challengeActive && REGIONS['czechia'] && REGIONS['czechia'].bounds) {
+        return calculateDistance(
+            REGIONS['czechia'].bounds.minLat, REGIONS['czechia'].bounds.minLon,
+            REGIONS['czechia'].bounds.maxLat, REGIONS['czechia'].bounds.maxLon
+        );
+    }
+
     // Check for custom region (either 'custom' or 'custom_<name>')
     const isCustomRegion = gameState.selectedRegion === 'custom' || 
                            (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
@@ -2532,6 +2945,23 @@ function showRoundResult(result) {
             : `${dist.toFixed(2)} km`;
     } else {
         walkRow.style.display = 'none';
+    }
+
+    // Show challenge feedback
+    const challengeRow = document.getElementById('resultChallengeRow');
+    if (gameState.challengeActive && result.challengeResult) {
+        challengeRow.style.display = '';
+        const textEl = document.getElementById('resultChallengeText');
+        if (result.challengeResult.correct) {
+            const key = ChallengeMode.getType() === 'regions' ? 'challenge.correct_region' : 'challenge.correct';
+            textEl.textContent = t(key, { name: result.challengeResult.targetName });
+            textEl.className = 'correct';
+        } else {
+            textEl.textContent = t('challenge.incorrect', { name: result.challengeResult.targetName });
+            textEl.className = 'incorrect';
+        }
+    } else {
+        challengeRow.style.display = 'none';
     }
 
     // Create result map
@@ -2626,8 +3056,13 @@ function showRoundResult(result) {
     const nextRoundBtn = document.getElementById('nextRound');
     const minimizeBtn = document.getElementById('minimizeResult');
     
-    // In infinite mode, always show next round button and minimize
-    if (gameState.preferences.infiniteMode) {
+    // In challenge mode, use challenge progress for result actions
+    if (gameState.challengeActive) {
+        nextRoundBtn.style.display = 'inline-block';
+        nextRoundBtn.textContent = ChallengeMode.getProgress().isComplete ? t('result.viewfinal') : t('btn.next');
+        minimizeBtn.style.display = 'inline-block';
+    } else if (gameState.preferences.infiniteMode) {
+        // In infinite mode, always show next round button and minimize
         if (gameState.isMultiplayer) {
             nextRoundBtn.style.display = 'none';
         } else {
@@ -2680,8 +3115,149 @@ function showRoundResult(result) {
     }, 100);
 }
 
+function showChallengeComplete() {
+    const progress = ChallengeMode.getProgress();
+    const challengeType = ChallengeMode.getType();
+
+    // Validate type to prevent injection
+    if (challengeType !== 'districts' && challengeType !== 'regions') return;
+
+    document.getElementById('finalScoreModal').dataset.challengeComplete = 'true';
+    document.getElementById('finalScore').textContent = progress.totalScore;
+
+    // Clean up challenge layers before losing references
+    clearChallengeMapLayers();
+
+    // Render summary map with colored regions
+    const mapContainer = document.getElementById('challengeSummaryMap');
+    if (mapContainer._leafletMap) {
+        mapContainer._leafletMap.remove();
+        mapContainer._leafletMap = null;
+    }
+    mapContainer.style.display = 'block';
+    mapContainer.innerHTML = '';
+
+    const breakdownContainer = document.getElementById('roundBreakdown');
+    breakdownContainer.innerHTML = '';
+
+    // Build header safely with DOM API (no innerHTML with dynamic values)
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'final-summary';
+    const h2 = document.createElement('h2');
+    h2.textContent = t('challenge.complete_title');
+    headerDiv.appendChild(h2);
+
+    const statsDiv = document.createElement('div');
+    statsDiv.className = 'summary-stats';
+    const typeLabel = challengeType === 'districts' ? t('challenge.districts') : t('challenge.regions');
+
+    const stats = [
+        { label: `🏆 ${typeLabel}`, value: `${progress.correctCount}/${progress.total}` },
+        { label: `🎯 ${t('challenge.correct_count')}`, value: `${progress.total > 0 ? Math.round(progress.correctCount / progress.total * 100) : 0}%` },
+        { label: `📊 ${t('final.score')}`, value: `${progress.totalScore}` }
+    ];
+    stats.forEach(s => {
+        const stat = document.createElement('div');
+        stat.className = 'summary-stat';
+        const label = document.createElement('span');
+        label.className = 'summary-label';
+        label.textContent = s.label;
+        const value = document.createElement('span');
+        value.className = 'summary-value';
+        value.textContent = s.value;
+        stat.appendChild(label);
+        stat.appendChild(value);
+        statsDiv.appendChild(stat);
+    });
+    headerDiv.appendChild(statsDiv);
+    breakdownContainer.appendChild(headerDiv);
+
+    const breakdownHeader = document.createElement('h3');
+    breakdownHeader.style.marginBottom = '15px';
+    breakdownHeader.style.marginTop = '20px';
+    breakdownHeader.textContent = t('final.breakdown');
+    breakdownContainer.appendChild(breakdownHeader);
+
+    progress.results.forEach(result => {
+        const region = REGIONS[result.key];
+        const i18nKey = `region.${result.key}`;
+        const translated = t(i18nKey);
+        const name = translated !== i18nKey ? translated :
+            ((currentLanguage === 'cs' && region && region.name_cz) ? region.name_cz : (region ? region.name : result.key));
+
+        const roundDiv = document.createElement('div');
+        roundDiv.className = 'round-result';
+        const icon = result.correct ? '✅' : '❌';
+        const nameDiv = document.createElement('div');
+        const strong = document.createElement('strong');
+        strong.textContent = `${icon} ${name}`;
+        nameDiv.appendChild(strong);
+        const scoreDiv = document.createElement('div');
+        scoreDiv.textContent = `${result.score} ${t('units.points')}`;
+        roundDiv.appendChild(nameDiv);
+        roundDiv.appendChild(scoreDiv);
+        breakdownContainer.appendChild(roundDiv);
+    });
+
+    document.getElementById('finalScoreModal').style.display = 'flex';
+
+    // Draw summary map after modal is visible
+    setTimeout(() => {
+        const summaryMap = L.map(mapContainer, {
+            zoomControl: true,
+            dragging: true,
+            scrollWheelZoom: false
+        });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors © CARTO'
+        }).addTo(summaryMap);
+
+        const allBounds = [];
+        progress.results.forEach(result => {
+            const region = REGIONS[result.key];
+            if (!region || !region.paths) return;
+            const color = result.correct ? '#4CAF50' : '#f44336';
+            region.paths.forEach(path => {
+                const latLngs = path.map(p => [p[0], p[1]]);
+                L.polygon(latLngs, {
+                    color: color,
+                    weight: 2,
+                    fillColor: color,
+                    fillOpacity: 0.4
+                }).addTo(summaryMap);
+                allBounds.push(...latLngs);
+            });
+        });
+
+        if (allBounds.length > 0) {
+            summaryMap.fitBounds(L.latLngBounds(allBounds), { padding: [20, 20] });
+        }
+
+        mapContainer._leafletMap = summaryMap;
+    }, 200);
+
+    ChallengeMode.reset();
+    gameState.challengeActive = false;
+    gameState.challengeLayers = [];
+    updateChallengeFillPreference();
+    checkChallengeResume();
+
+    const correctDisplay = document.getElementById('challengeCorrectDisplay');
+    if (correctDisplay) correctDisplay.style.display = 'none';
+}
+
 function showFinalScore() {
+    document.getElementById('finalScoreModal').dataset.challengeComplete = 'false';
     document.getElementById('finalScore').textContent = gameState.totalScore;
+
+    // Hide challenge summary map for regular games
+    const mapContainer = document.getElementById('challengeSummaryMap');
+    if (mapContainer._leafletMap) {
+        mapContainer._leafletMap.remove();
+        mapContainer._leafletMap = null;
+    }
+    mapContainer.style.display = 'none';
 
     // Create round breakdown
     const breakdownContainer = document.getElementById('roundBreakdown');
@@ -2759,11 +3335,17 @@ function showFinalScore() {
 }
 
 async function resetGame() {
+    if (gameState.challengeActive) {
+        ChallengeMode.reset();
+        gameState.challengeActive = false;
+    }
+
     // Reset game state
     gameState.currentRound = 1;
     gameState.totalScore = 0;
     gameState.rounds = [];
     gameState.guessLocation = null;
+    gameState.challengeLayers = [];
 
     // Clear markers
     if (gameState.guessMarker) {
@@ -2819,6 +3401,8 @@ function updateScoreDisplay() {
 }
 
 function returnToStartScreen() {
+    document.getElementById('finalScoreModal').dataset.challengeComplete = 'false';
+
     // Stop any running timer
     stopTimer();
     
@@ -2853,6 +3437,13 @@ function returnToStartScreen() {
         gameState.resultMap.remove();
         gameState.resultMap = null;
     }
+    // Clean up challenge summary map
+    const challengeSummaryContainer = document.getElementById('challengeSummaryMap');
+    if (challengeSummaryContainer && challengeSummaryContainer._leafletMap) {
+        challengeSummaryContainer._leafletMap.remove();
+        challengeSummaryContainer._leafletMap = null;
+    }
+    challengeSummaryContainer.style.display = 'none';
     
     // Reset game state completely
     gameState.currentRound = 1;
@@ -2868,6 +3459,9 @@ function returnToStartScreen() {
     gameState.timeRemaining = 0;
     gameState.currentPanoramaPosition = null;
     gameState.startingNewRound = false;
+    gameState.challengeActive = false;
+    gameState.challengeLayers = [];
+    updateChallengeFillPreference();
     
     // Reset UI elements
     document.getElementById('submitGuess').disabled = true;
@@ -2876,6 +3470,11 @@ function returnToStartScreen() {
     document.getElementById('nextRound').disabled = false;
     document.getElementById('resetLocationBtn').style.display = 'none';
     document.getElementById('walkDistanceDisplay').style.display = 'none';
+    const challengeDisplay = document.getElementById('challengeCorrectDisplay');
+    if (challengeDisplay) {
+        challengeDisplay.style.display = 'none';
+    }
+    checkChallengeResume();
     
     // Show start screen
     document.getElementById('startScreen').style.display = 'flex';

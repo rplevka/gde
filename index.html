@@ -99,6 +99,28 @@
                     </div>
                 </div>
                 
+                <div class="start-section" id="challengeSection">
+                    <h2 data-i18n="challenge.title">🏆 Challenge Modes</h2>
+                    <div class="mode-grid">
+                        <button class="mode-btn" id="startDistrictChallenge">
+                            <span class="mode-icon">🏛️</span>
+                            <span class="mode-name" data-i18n="challenge.districts">District Challenge (77)</span>
+                            <span class="mode-desc" data-i18n="challenge.districts.desc">One panorama from each district</span>
+                        </button>
+                        <button class="mode-btn" id="startRegionChallenge">
+                            <span class="mode-icon">🗺️</span>
+                            <span class="mode-name" data-i18n="challenge.regions">Region Challenge (13)</span>
+                            <span class="mode-desc" data-i18n="challenge.regions.desc">One panorama from each region</span>
+                        </button>
+                    </div>
+                    <div id="resumeChallengeContainer" style="display: none; margin-top: 10px; text-align: center;">
+                        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                            <button id="resumeChallenge" class="btn btn-secondary" data-i18n="challenge.resume">▶️ Resume Challenge</button>
+                            <button id="startFreshChallenge" class="btn btn-secondary" data-i18n="challenge.start_fresh">Start Fresh</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
                     <button id="difficultyPrefsBtn" class="btn btn-secondary"><span data-i18n="btn.settings">⚙️ Game Settings</span></button>
                     <button id="startGameBtn" class="btn btn-success" disabled data-i18n="btn.start">Start Game</button>
@@ -133,6 +155,10 @@
                 <div class="score-item" id="avgScoreDisplay" style="display: none;">
                     <span class="label" data-i18n="header.avg">Avg:</span>
                     <span id="avgScore">0</span>
+                </div>
+                <div class="score-item" id="challengeCorrectDisplay" style="display: none;">
+                    <span class="label">✅</span>
+                    <span id="challengeCorrectCount">0</span>
                 </div>
                 <button id="finishGame" class="btn btn-secondary" style="display: none; margin-left: 15px;" data-i18n="btn.finish">🏁 Finish Game</button>
             </div>
@@ -192,6 +218,7 @@
                 <div id="resultDetails">
                     <p><strong data-i18n="result.distance">Distance:</strong> <span id="resultDistance"></span></p>
                     <p id="resultWalkDistanceRow" style="display: none;"><strong>🚶 <span data-i18n="result.walked">Walked:</span></strong> <span id="resultWalkDistance"></span></p>
+                    <p id="resultChallengeRow" style="display: none;"><span id="resultChallengeText"></span></p>
                     <p><strong data-i18n="result.score">Score:</strong> <span id="resultScore"></span></p>
                 </div>
                 <div id="resultMap"></div>
@@ -326,6 +353,17 @@
                         <input type="number" id="pref-flashDuration" min="0.1" max="10" step="0.1" value="0.5" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
                     </div>
                     
+                    <div class="preference-item" id="challengeFillSettings" style="display: none;">
+                        <div class="preference-info">
+                            <strong data-i18n="settings.showfill">🗺️ Show Completed Areas</strong>
+                            <p data-i18n="settings.showfill.desc">Color districts/regions you've already guessed</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="pref-challengeFill" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
                     <div class="preference-item" id="roundCountSettings">
                         <div class="preference-info">
                             <strong data-i18n="settings.rounds">🔢 Number of Rounds</strong>
@@ -436,6 +474,7 @@
                 <h2 data-i18n="final.title">🎉 Game Complete!</h2>
                 <div id="finalScoreDetails">
                     <p class="final-score"><span data-i18n="final.score">Final Score:</span> <span id="finalScore"></span></p>
+                    <div id="challengeSummaryMap" style="display: none; height: 300px; width: 100%; border-radius: 8px; margin-bottom: 15px;"></div>
                     <div id="roundBreakdown"></div>
                 </div>
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
@@ -531,6 +570,7 @@
     </div>
 
     <script src="i18n.js"></script>
+    <script src="challenge.js"></script>
     <script src="app.js"></script>
     <script src="multiplayer.js"></script>
 </body>

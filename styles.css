@@ -1651,4 +1651,29 @@ input:disabled + .slider {
         font-size: 12px;
         padding: 8px 15px;
     }
+
+    /* Challenge Mode */
+    #challengeSection {
+        border-top: 2px solid #e8e8e8;
+        padding-top: 20px;
+        margin-top: 10px;
+    }
+
+    #challengeSection h2 {
+        color: #667eea;
+    }
+
+    #resultChallengeRow {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-top: 10px;
+    }
+
+    #resultChallengeRow .correct {
+        color: #4caf50;
+    }
+
+    #resultChallengeRow .incorrect {
+        color: #f44336;
+    }
 }

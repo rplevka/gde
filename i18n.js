@@ -198,6 +198,26 @@ const translations = {
         'final.worst_round': 'Worst Round',
         'final.total_walked': 'Total Walked',
         
+        // Challenge Mode
+        'challenge.title': 'Challenge Modes',
+        'challenge.districts': 'District Challenge (77)',
+        'challenge.districts.desc': 'One panorama from each district',
+        'challenge.regions': 'Region Challenge (13)',
+        'challenge.regions.desc': 'One panorama from each region',
+        'challenge.resume': '▶️ Resume Challenge',
+        'challenge.resume_districts': '▶️ Resume District Challenge',
+        'challenge.resume_regions': '▶️ Resume Region Challenge',
+        'challenge.correct': '✅ Correct district! ({name})',
+        'challenge.correct_region': '✅ Correct region! ({name})',
+        'challenge.incorrect': '❌ Wrong - it was {name}',
+        'challenge.skipped': '⏭️ Skipped (no panorama found)',
+        'challenge.complete_title': '🏆 Challenge Complete!',
+        'challenge.correct_count': 'Correct',
+        'challenge.start_fresh': 'Start Fresh',
+        'challenge.save_failed': 'Warning: Cannot save progress. Your challenge will be lost if you close the page.',
+        'settings.showfill': 'Show Completed Areas',
+        'settings.showfill.desc': 'Color districts/regions you\'ve already guessed',
+
         // Settings Modal
         'settings.title': 'Game Settings',
         'settings.subtitle': 'Customize your game settings',
@@ -494,6 +514,26 @@ const translations = {
         'final.worst_round': 'Nejhorší kolo',
         'final.total_walked': 'Celkem nachodeno',
         
+        // Challenge Mode
+        'challenge.title': 'Výzvy',
+        'challenge.districts': 'Výzva okresů (77)',
+        'challenge.districts.desc': 'Jedno panorama z každého okresu',
+        'challenge.regions': 'Výzva krajů (13)',
+        'challenge.regions.desc': 'Jedno panorama z každého kraje',
+        'challenge.resume': '▶️ Pokračovat ve výzvě',
+        'challenge.resume_districts': '▶️ Pokračovat ve výzvě okresů',
+        'challenge.resume_regions': '▶️ Pokračovat ve výzvě krajů',
+        'challenge.correct': '✅ Správný okres! ({name})',
+        'challenge.correct_region': '✅ Správný kraj! ({name})',
+        'challenge.incorrect': '❌ Špatně - správně: {name}',
+        'challenge.skipped': '⏭️ Přeskočeno (panorama nenalezeno)',
+        'challenge.complete_title': '🏆 Výzva dokončena!',
+        'challenge.correct_count': 'Správně',
+        'challenge.start_fresh': 'Začít znovu',
+        'challenge.save_failed': 'Upozornění: Nelze uložit postup. Výzva bude ztracena při zavření stránky.',
+        'settings.showfill': 'Zobrazit dokončené oblasti',
+        'settings.showfill.desc': 'Obarvit okresy/kraje, které jste už hádali',
+
         // Settings Modal
         'settings.title': 'Nastavení hry',
         'settings.subtitle': 'Přizpůsob si hru podle sebe',
