@@ -145,6 +145,7 @@ const translations = {
         // Buttons
         'btn.settings': 'Game Settings',
         'btn.start': 'Start Game',
+        'btn.playagain': '🔄 Play Again',
         'btn.submit': 'Submit Guess',
         'btn.submit.placeholder': 'Place your guess on the map',
         'btn.next': 'Next Round',
@@ -438,6 +439,7 @@ const translations = {
         // Buttons
         'btn.settings': 'Nastavení',
         'btn.start': 'Začít hru',
+        'btn.playagain': '🔄 Hrát znovu',
         'btn.submit': 'Potvrdit',
         'btn.submit.placeholder': 'Označ místo na mapě',
         'btn.next': 'Další kolo',
