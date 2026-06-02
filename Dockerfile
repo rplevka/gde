@@ -34,7 +34,7 @@ WORKDIR /app
 COPY --from=builder /build/server /app/server
 
 # Copy static files
-COPY index.html styles.css app.js i18n.js multiplayer.js panorama-proxy.js ./
+COPY index.html styles.css app.js i18n.js multiplayer.js panorama-proxy.js challenge.js ./
 
 # Copy boundaries directory
 COPY boundaries/ ./boundaries/
