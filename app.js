@@ -1721,11 +1721,17 @@ function setupMobileTabBar() {
 function fitMapToRegion() {
     if (!gameState.map) return;
     
-    const isCustomRegion = gameState.selectedRegion === 'custom' || 
-                           (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
-    const region = isCustomRegion && gameState.customRegion 
-        ? gameState.customRegion 
-        : REGIONS[gameState.selectedRegion];
+    // In challenge mode, always show entire Czech Republic (don't reveal target)
+    let region;
+    if (gameState.challengeActive) {
+        region = REGIONS['czechia'];
+    } else {
+        const isCustomRegion = gameState.selectedRegion === 'custom' || 
+                               (gameState.selectedRegion && gameState.selectedRegion.startsWith('custom_'));
+        region = isCustomRegion && gameState.customRegion 
+            ? gameState.customRegion 
+            : REGIONS[gameState.selectedRegion];
+    }
     
     if (region && region.bounds) {
         const bounds = L.latLngBounds(
