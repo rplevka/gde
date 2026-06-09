@@ -1282,6 +1282,12 @@ function setupStartScreen() {
                 gameState.selectedRegion = target.key;
                 await loadBoundaryFile('czechia');
                 await loadBoundaryFile(target.key);
+                // Load boundaries for already-completed districts so the minimap
+                // can recolor them with correct/incorrect fills after resuming.
+                const completedKeys = [...new Set(
+                    ChallengeMode.getProgress().results.map(r => r.key)
+                )];
+                await Promise.all(completedKeys.map(key => loadBoundaryFile(key)));
                 await startGame();
                 updateChallengeUI();
             } else {
