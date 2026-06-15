@@ -1275,6 +1275,9 @@ function setupStartScreen() {
                 return;
             }
             gameState.challengeActive = true;
+            // Sync the round counter to restored challenge progress so the
+            // per-round result screen matches the header (which uses currentIndex + 1).
+            gameState.currentRound = ChallengeMode.getProgress().currentIndex + 1;
             gameState.selectedMode = ChallengeMode.getMode() || selectedMode || 'static';
             updateChallengeFillPreference();
             const target = ChallengeMode.getCurrentTarget();
