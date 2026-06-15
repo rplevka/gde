@@ -1666,6 +1666,14 @@ function setupEventListeners() {
             
             // Reset current location to original
             gameState.currentLocation = { ...gameState.originalLocation };
+
+            // The pano-place listener doesn't fire for this programmatic reload, so the
+            // scoring position (used when targetOriginal is off) and path tracking must be
+            // moved back to the start here. Push onto the path to keep currentPanoramaPosition
+            // in sync with the last path point, so a later move measures distance from the start.
+            const startPosition = { lat: gameState.originalLocation.lat, lon: gameState.originalLocation.lon };
+            gameState.currentPanoramaPosition = startPosition;
+            gameState.explorerPath.push(startPosition);
         }
     });
 
