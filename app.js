@@ -1275,9 +1275,12 @@ function setupStartScreen() {
                 return;
             }
             gameState.challengeActive = true;
-            // Sync the round counter to restored challenge progress so the
-            // per-round result screen matches the header (which uses currentIndex + 1).
-            gameState.currentRound = ChallengeMode.getProgress().currentIndex + 1;
+            // Sync the round counter and accumulated score to restored challenge
+            // progress so the per-round result screen and header score match
+            // (header uses currentIndex + 1 and gameState.totalScore).
+            const resumedProgress = ChallengeMode.getProgress();
+            gameState.currentRound = resumedProgress.currentIndex + 1;
+            gameState.totalScore = resumedProgress.totalScore;
             gameState.selectedMode = ChallengeMode.getMode() || selectedMode || 'static';
             updateChallengeFillPreference();
             const target = ChallengeMode.getCurrentTarget();
