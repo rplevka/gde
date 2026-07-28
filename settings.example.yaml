@@ -5,6 +5,7 @@ api_keys:
 
 # Cache configuration (all optional - defaults shown)
 cache:
+  disabled: false      # Set to true to turn off tile caching entirely (default: false)
   ttl_days: 90         # How long to keep cached tiles (default: 90)
   max_size_mb: 5000    # Maximum cache size in MB (default: 5000 = 5GB)
   dir: ".tile_cache"   # Cache directory (default: .tile_cache)

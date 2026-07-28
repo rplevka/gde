@@ -32,6 +32,7 @@ type CacheConfig struct {
 	MaxSizeMB     int    `yaml:"max_size_mb"`
 	Dir           string `yaml:"dir"`
 	CleanupHours  int    `yaml:"cleanup_hours"`
+	Disabled      bool   `yaml:"disabled"`
 }
 
 type Config struct {
@@ -117,6 +118,9 @@ func logError(format string, v ...interface{}) {
 
 // isCacheable checks if a request path should be cached
 func isCacheable(path string) bool {
+	if cacheConfig.Disabled {
+		return false
+	}
 	for _, pattern := range tilePatterns {
 		if pattern.MatchString(path) {
 			logDebug("✅ Cacheable: %s", path)
@@ -414,7 +418,11 @@ func init() {
 	staticServer = http.FileServer(http.Dir("."))
 	
 	// Initialize tile cache
-	initCache()
+	if cacheConfig.Disabled {
+		logInfo("📦 Tile cache disabled via settings")
+	} else {
+		initCache()
+	}
 	
 	// Periodically log cache stats
 	go func() {
@@ -482,9 +490,10 @@ func loadAPIKeys() error {
 	if config.Cache.CleanupHours > 0 {
 		cacheConfig.CleanupHours = config.Cache.CleanupHours
 	}
+	cacheConfig.Disabled = config.Cache.Disabled
 	
-	logInfo("📦 Cache config: TTL=%d days, MaxSize=%dMB, Dir=%s, Cleanup=%dh",
-		cacheConfig.TTLDays, cacheConfig.MaxSizeMB, cacheConfig.Dir, cacheConfig.CleanupHours)
+	logInfo("📦 Cache config: TTL=%d days, MaxSize=%dMB, Dir=%s, Cleanup=%dh, Disabled=%v",
+		cacheConfig.TTLDays, cacheConfig.MaxSizeMB, cacheConfig.Dir, cacheConfig.CleanupHours, cacheConfig.Disabled)
 
 	return nil
 }
@@ -713,6 +722,11 @@ func cacheHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	
+	if cacheConfig.Disabled {
+		fmt.Fprintf(w, `{"enabled": false, "message": "Cache is disabled"}`)
+		return
+	}
+	
 	switch action {
 	case "clear":
 		// Clear the entire cache
@@ -809,7 +823,11 @@ func main() {
 	addr := fmt.Sprintf(":%s", port)
 	logInfo("🚀 Server running on http://localhost%s", addr)
 	logInfo("📊 Connection pool: 100 max idle connections")
-	logInfo("📦 Tile cache: %d-day TTL, %dMB max size, dir: %s", cacheConfig.TTLDays, cacheConfig.MaxSizeMB, cacheConfig.Dir)
+	if cacheConfig.Disabled {
+		logInfo("📦 Tile cache: disabled")
+	} else {
+		logInfo("📦 Tile cache: %d-day TTL, %dMB max size, dir: %s", cacheConfig.TTLDays, cacheConfig.MaxSizeMB, cacheConfig.Dir)
+	}
 	logInfo("📍 Cache stats endpoint: /api/cache")
 	
 	if err := http.ListenAndServe(addr, nil); err != nil {
