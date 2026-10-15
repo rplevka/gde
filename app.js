@@ -1895,8 +1895,8 @@ document.addEventListener('keydown', (e) => {
 
         case 'r':
         case 'R':
-            // Reset to starting location (explorer mode)
-            if (gameState.selectedMode === 'explorer' && !gameState.roundSubmitted) {
+            // Reset to starting location (explorer mode, or unlocked post-submit)
+            if ((gameState.selectedMode === 'explorer' && !gameState.roundSubmitted) || gameState.roundSubmitted) {
                 const resetBtn = document.getElementById('resetLocationBtn');
                 if (resetBtn && resetBtn.style.display !== 'none') {
                     resetBtn.click();
@@ -2140,6 +2140,9 @@ function handleTimeOut() {
 
     // Show result
     showTimeOutResult();
+
+    // Unlock panorama so user can explore spawn before next round
+    unlockPanoramaAfterSubmit();
 }
 
 // Flash mode functions
@@ -2616,14 +2619,17 @@ async function findRandomLocationWithPanorama() {
     return null; // No panorama found after all attempts
 }
 
-async function loadPanorama(lat, lon) {
+async function loadPanorama(lat, lon, options = {}) {
     try {
         const container = document.getElementById('panoramaContainer');
-        
-        // Enable navigation only in explorer mode
-        const showNavigation = gameState.selectedMode === 'explorer';
-        
-        const panoData = await Panorama.panoramaFromPosition({
+
+        // Enable navigation in explorer mode, or when unlocked for post-submit
+        // exploration (roundSubmitted), or when explicitly forced.
+        const showNavigation = gameState.selectedMode === 'explorer' ||
+            gameState.roundSubmitted ||
+            options.forceNavigation === true;
+
+        const panoParams = {
             parent: container,
             lon: lon,
             lat: lat,
@@ -2631,7 +2637,15 @@ async function loadPanorama(lat, lon) {
             radius: CONFIG.PANORAMA_SEARCH_RADIUS,
             showNavigation: showNavigation,
             lang: getCurrentLanguage()
-        });
+        };
+        // Preserve view direction/zoom when reloading to unlock after submit
+        if (options.preserveCamera) {
+            if (options.preserveCamera.yaw !== undefined) panoParams.yaw = options.preserveCamera.yaw;
+            if (options.preserveCamera.pitch !== undefined) panoParams.pitch = options.preserveCamera.pitch;
+            if (options.preserveCamera.fov !== undefined) panoParams.fov = options.preserveCamera.fov;
+        }
+
+        const panoData = await Panorama.panoramaFromPosition(panoParams);
 
         if (panoData.errorCode !== 'NONE') {
             console.error(`Panorama error: ${panoData.error}`);
@@ -2652,7 +2666,10 @@ async function loadPanorama(lat, lon) {
             };
             
             // Add listener to enforce restrictions
+            // Restrictions are lifted once the round is submitted so the user
+            // can freely explore where they spawned before advancing.
             panoData.addListener('pano-view', () => {
+                if (gameState.roundSubmitted) return;
                 const currentCamera = panoData.getCamera();
                 const newCamera = { ...currentCamera };
                 
@@ -2699,6 +2716,47 @@ async function loadPanorama(lat, lon) {
     } catch (error) {
         console.error('Error loading panorama:', error);
         return false;
+    }
+}
+
+// Unlock pan/zoom/move after round submission so the user can explore
+// where they spawned during the period between rounds (result shown but
+// next round not yet started). Pan/zoom unlock is automatic via the
+// roundSubmitted check in the pano-view listener. Movement in static mode
+// needs a reload with navigation enabled (Mapy API only allows
+// showNavigation at creation time).
+async function unlockPanoramaAfterSubmit() {
+    try {
+        // Explorer mode already allows movement; pan/zoom auto-unlock.
+        if (gameState.selectedMode === 'explorer') return;
+        if (!gameState.panoramaInstance) return;
+        if (!gameState.roundSubmitted) return;
+        if (gameState.startingNewRound) return;
+
+        const pos = getCurrentPanoramaPosition() || gameState.originalLocation;
+        if (!pos) return;
+
+        let camera = null;
+        try {
+            camera = gameState.panoramaInstance.getCamera();
+        } catch (e) {
+            camera = null;
+        }
+
+        gameState.panoramaInstance.destroy();
+        gameState.panoramaInstance = null;
+
+        const ok = await loadPanorama(pos.lat, pos.lon, {
+            forceNavigation: true,
+            preserveCamera: camera
+        });
+        if (ok) {
+            // Allow returning to spawn while exploring post-submit
+            const resetBtn = document.getElementById('resetLocationBtn');
+            if (resetBtn) resetBtn.style.display = 'block';
+        }
+    } catch (error) {
+        console.warn('Failed to unlock panorama after submit:', error);
     }
 }
 
@@ -2854,6 +2912,9 @@ function submitGuess() {
 
     // Show result
     showRoundResult(roundResult);
+
+    // Unlock panorama so user can explore spawn before next round
+    unlockPanoramaAfterSubmit();
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
