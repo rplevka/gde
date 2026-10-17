@@ -1281,6 +1281,19 @@ function setupStartScreen() {
             const resumedProgress = ChallengeMode.getProgress();
             gameState.currentRound = resumedProgress.currentIndex + 1;
             gameState.totalScore = resumedProgress.totalScore;
+            // Restore round history so average score (totalScore / rounds.length)
+            // counts rounds played before the save, not just rounds after resume.
+            gameState.rounds = resumedProgress.results.map((r, i) => ({
+                round: i + 1,
+                score: typeof r.score === 'number' ? r.score : 0,
+                distance: null,
+                actualLocation: null,
+                guessLocation: r.guessLocation ? { ...r.guessLocation } : null,
+                explorerPath: null,
+                startLocation: null,
+                walkDistance: 0,
+                challengeResult: null
+            }));
             gameState.selectedMode = ChallengeMode.getMode() || selectedMode || 'static';
             updateChallengeFillPreference();
             const target = ChallengeMode.getCurrentTarget();
@@ -2459,6 +2472,18 @@ async function startNewRound() {
                 if (gameState.challengeActive && ChallengeMode && ChallengeMode.isActive()) {
                     console.log('⏭️ Challenge: no panorama found, skipping district');
                     ChallengeMode.submitResult({ lat: 0, lon: 0 }, 0);
+                    // Keep gameState history in sync so average (totalScore / rounds.length) stays correct.
+                    gameState.rounds.push({
+                        round: gameState.currentRound,
+                        score: 0,
+                        distance: null,
+                        actualLocation: null,
+                        guessLocation: null,
+                        explorerPath: null,
+                        startLocation: null,
+                        walkDistance: 0,
+                        challengeResult: null
+                    });
                     updateChallengeUI();
 
                     const progress = ChallengeMode.getProgress();
@@ -3478,9 +3503,21 @@ function updateScoreDisplay() {
     
     // Show average score in infinite mode
     const avgDisplay = document.getElementById('avgScoreDisplay');
-    if (gameState.preferences.infiniteMode && gameState.rounds.length > 0) {
+    // In challenge mode the authoritative history is ChallengeMode progress,
+    // which survives a resume while gameState.rounds is rebuilt from it.
+    // Use it so the average divides by total rounds (before + after load).
+    let avgCount = gameState.rounds.length;
+    let avgTotal = gameState.totalScore;
+    if (gameState.challengeActive && typeof ChallengeMode !== 'undefined' && ChallengeMode.isActive()) {
+        const challengeProgress = ChallengeMode.getProgress();
+        if (challengeProgress.results.length > 0) {
+            avgCount = challengeProgress.results.length;
+            avgTotal = challengeProgress.totalScore;
+        }
+    }
+    if (gameState.preferences.infiniteMode && avgCount > 0) {
         avgDisplay.style.display = 'flex';
-        const avg = Math.round(gameState.totalScore / gameState.rounds.length);
+        const avg = Math.round(avgTotal / avgCount);
         document.getElementById('avgScore').textContent = avg;
     } else {
         avgDisplay.style.display = 'none';
