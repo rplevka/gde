@@ -133,13 +133,17 @@ func isCacheable(path string) bool {
 
 // getCacheKey generates a unique cache key for a request
 func getCacheKey(path string, query url.Values) string {
-	// Create a normalized key from path + sorted query params (excluding apikey)
+	// Create a normalized key from path + sorted query params (excluding apikey and sdk).
+	// Tiles are immutable: identical tile content must map to one key regardless of
+	// which API key fetched it or which daily sdk token (LM(), rotates at midnight)
+	// the SDK appended. `timestamp` stays in the key (pano version).
 	cleanQuery := url.Values{}
 	for k, v := range query {
-		// Exclude API key from cache key - same tile regardless of which key fetched it
-		if strings.ToLower(k) != "apikey" {
-			cleanQuery[k] = v
+		lk := strings.ToLower(k)
+		if lk == "apikey" || lk == "sdk" {
+			continue
 		}
+		cleanQuery[k] = v
 	}
 	
 	keyStr := path + "?" + cleanQuery.Encode()
