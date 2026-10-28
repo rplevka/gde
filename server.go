@@ -689,7 +689,17 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		_, copyErr := io.Copy(w, src)
 		resp.Body.Close()
 		if copyErr != nil {
-			logWarn("⚠️  [%s] Streaming interrupted (%s): %v", apiKey.ID, apiPath, copyErr)
+			// Client cancels (browser abort on pano move, nav away) are
+			// normal: library aborts in-flight tiles, kernel reports
+			// broken pipe / reset. DEBUG only; real errors stay WARN.
+			msg := strings.ToLower(copyErr.Error())
+			if strings.Contains(msg, "broken pipe") ||
+				strings.Contains(msg, "connection reset") ||
+				strings.Contains(msg, "context canceled") {
+				logDebug("🚫 [%s] Client cancelled stream (%s): %v", apiKey.ID, apiPath, copyErr)
+			} else {
+				logWarn("⚠️  [%s] Streaming interrupted (%s): %v", apiKey.ID, apiPath, copyErr)
+			}
 			return
 		}
 
