@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/hex"
@@ -656,38 +657,16 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 			logWarn("⚠️  [%s] Request returned error (HTTP %d) - %s", apiKey.ID, resp.StatusCode, apiPath)
 		}
 		
-		// Read response body (we need it for caching anyway)
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close() // Close immediately after reading
-		if err != nil {
-			http.Error(w, "Failed to read response", http.StatusBadGateway)
-			return
+		// Stream response to client; tee into a buffer for caching when this
+		// is a cacheable 200. First byte leaves after upstream first byte,
+		// not after full upstream download (previous io.ReadAll behavior).
+		cacheableSuccess := shouldCache && resp.StatusCode == 200
+		var cacheBuf bytes.Buffer
+		var src io.Reader = resp.Body
+		if cacheableSuccess {
+			src = io.TeeReader(resp.Body, &cacheBuf)
 		}
-		
-		// Cache successful tile responses
-		if shouldCache && resp.StatusCode == 200 && len(body) > 0 {
-			logDebug("📝 Will cache: %s (key: %s, size: %d)", apiPath, cacheKey, len(body))
-			// Prepare headers to cache
-			cacheHeaders := map[string]string{
-				"Content-Type": resp.Header.Get("Content-Type"),
-			}
-			if ct := resp.Header.Get("Content-Length"); ct != "" {
-				cacheHeaders["Content-Length"] = ct
-			}
-			
-			// Write to cache asynchronously - capture apiPath in closure
-			pathForLog := apiPath
-			go func(key string, data []byte, headers map[string]string, logPath string) {
-				if err := writeToCache(key, data, headers); err != nil {
-					logWarn("Failed to cache tile: %v", err)
-				} else {
-					logDebug("📦 Cached: %s (%d bytes)", logPath, len(data))
-				}
-			}(cacheKey, body, cacheHeaders, pathForLog)
-		} else if shouldCache {
-			logDebug("⚠️ Not caching: status=%d, bodyLen=%d", resp.StatusCode, len(body))
-		}
-		
+
 		// Copy response headers
 		for key, values := range resp.Header {
 			for _, value := range values {
@@ -709,8 +688,39 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		// Write status code
 		w.WriteHeader(resp.StatusCode)
 		
-		// Write response body
-		w.Write(body)
+		// Stream response body
+		_, copyErr := io.Copy(w, src)
+		resp.Body.Close()
+		if copyErr != nil {
+			logWarn("⚠️  [%s] Streaming interrupted (%s): %v", apiKey.ID, apiPath, copyErr)
+			return
+		}
+
+		// Cache successful tile responses only after a complete streamed copy,
+		// so truncated streams never poison the cache.
+		if cacheableSuccess && cacheBuf.Len() > 0 {
+			data := append([]byte(nil), cacheBuf.Bytes()...)
+			logDebug("📝 Will cache: %s (key: %s, size: %d)", apiPath, cacheKey, len(data))
+			// Prepare headers to cache
+			cacheHeaders := map[string]string{
+				"Content-Type": resp.Header.Get("Content-Type"),
+			}
+			if ct := resp.Header.Get("Content-Length"); ct != "" {
+				cacheHeaders["Content-Length"] = ct
+			}
+			
+			// Write to cache asynchronously - capture apiPath in closure
+			pathForLog := apiPath
+			go func(key string, d []byte, headers map[string]string, logPath string) {
+				if err := writeToCache(key, d, headers); err != nil {
+					logWarn("Failed to cache tile: %v", err)
+				} else {
+					logDebug("📦 Cached: %s (%d bytes)", logPath, len(d))
+				}
+			}(cacheKey, data, cacheHeaders, pathForLog)
+		} else if shouldCache {
+			logDebug("⚠️ Not caching: status=%d, streamedBytes=%d", resp.StatusCode, cacheBuf.Len())
+		}
 		return
 	}
 	
