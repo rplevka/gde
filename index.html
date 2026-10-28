@@ -10,15 +10,19 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
-    
-    <!-- Panorama API Proxy (must load before Panorama library) -->
-    <script src="panorama-proxy.js"></script>
-    
+
+    <!-- Preconnect to tile/API origins (tile TTFB path) -->
+    <link rel="preconnect" href="https://api.mapy.cz">
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+
+    <!-- Panorama API Proxy (must load before Panorama library; defer preserves order) -->
+    <script src="panorama-proxy.js" defer></script>
+
     <!-- Panorama JS -->
-    <script type="text/javascript" src="https://api.mapy.cz/js/panorama/v1/panorama.js"></script>
-    
+    <script type="text/javascript" src="https://api.mapy.cz/js/panorama/v1/panorama.js" defer></script>
+
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 </head>
 <body>
     <div id="app">
@@ -569,9 +573,9 @@
         </div>
     </div>
 
-    <script src="i18n.js"></script>
-    <script src="challenge.js"></script>
-    <script src="app.js"></script>
-    <script src="multiplayer.js"></script>
+    <script src="i18n.js" defer></script>
+    <script src="challenge.js" defer></script>
+    <script src="app.js" defer></script>
+    <script src="multiplayer.js" defer></script>
 </body>
 </html>
