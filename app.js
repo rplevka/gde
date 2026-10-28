@@ -2729,7 +2729,10 @@ async function loadPanorama(lat, lon, options = {}) {
         }
 
         // Listen for position changes in explorer mode (when user navigates to a new panorama)
+        // Data model updates stay synchronous (scoring exact); DOM write is
+        // rAF-coalesced so holding W (many pano-place/sec) doesn't layout-thrash.
         if (showNavigation) {
+            let walkDisplayQueued = false;
             panoData.addListener('pano-place', (data) => {
                 // Store current position for scoring - coordinates are in data.info
                 if (data && data.info && data.info.lat !== undefined && data.info.lon !== undefined) {
@@ -2738,7 +2741,13 @@ async function loadPanorama(lat, lon, options = {}) {
                     if (gameState.explorerPath.length > 0) {
                         const lastPos = gameState.explorerPath[gameState.explorerPath.length - 1];
                         gameState.explorerDistance += calculateDistance(lastPos.lat, lastPos.lon, newPos.lat, newPos.lon);
-                        updateWalkDistanceDisplay();
+                        if (!walkDisplayQueued) {
+                            walkDisplayQueued = true;
+                            requestAnimationFrame(() => {
+                                walkDisplayQueued = false;
+                                updateWalkDistanceDisplay();
+                            });
+                        }
                     }
                     gameState.currentPanoramaPosition = newPos;
                     gameState.explorerPath.push(newPos);
