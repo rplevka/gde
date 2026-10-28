@@ -3,55 +3,35 @@
  * Intercepts Panorama API calls and routes them through our proxy server
  */
 
-// Store original XMLHttpRequest
-const OriginalXHR = window.XMLHttpRequest;
+// Rewrite Mapy.cz API URLs to our proxy prefix. Single regex, no per-request logging
+// (tile fetches run up to 8 concurrent; console.log there costs devtools + alloc).
+function rewriteMapyUrl(url) {
+    return url.replace(/^https?:\/\/(api|mapserver)\.mapy\.cz\//, '/api/mapy/');
+}
 
-// Create proxy XMLHttpRequest
-window.XMLHttpRequest = function() {
-    const xhr = new OriginalXHR();
-    const originalOpen = xhr.open;
-    
-    // Intercept open() to modify URLs
-    xhr.open = function(method, url, ...args) {
-        // Check if this is a Mapy.cz API call
-        if (typeof url === 'string') {
-            const originalUrl = url;
-            
-            // Replace all Mapy.cz API domains with our proxy
-            url = url.replace('https://api.mapy.cz/', '/api/mapy/');
-            url = url.replace('http://api.mapy.cz/', '/api/mapy/');
-            url = url.replace('https://mapserver.mapy.cz/', '/api/mapy/');
-            url = url.replace('http://mapserver.mapy.cz/', '/api/mapy/');
-            
-            if (url !== originalUrl) {
-                console.log('🔄 Proxying XHR:', url);
-            }
-        }
-        
-        return originalOpen.call(this, method, url, ...args);
-    };
-    
-    return xhr;
+// Patch XMLHttpRequest.prototype.open once (preserves prototype, constants,
+// instanceof). Library JSON path uses fetch, so this is a fallback.
+const origXhrOpen = XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open = function (method, url, ...args) {
+    if (typeof url === 'string') {
+        url = rewriteMapyUrl(url);
+    }
+    return origXhrOpen.call(this, method, url, ...args);
 };
 
-// Also intercept fetch if Panorama uses it
-const originalFetch = window.fetch;
-window.fetch = function(url, ...args) {
-    if (typeof url === 'string') {
-        const originalUrl = url;
-        
-        // Replace all Mapy.cz API domains with our proxy
-        url = url.replace('https://api.mapy.cz/', '/api/mapy/');
-        url = url.replace('http://api.mapy.cz/', '/api/mapy/');
-        url = url.replace('https://mapserver.mapy.cz/', '/api/mapy/');
-        url = url.replace('http://mapserver.mapy.cz/', '/api/mapy/');
-        
-        if (url !== originalUrl) {
-            console.log('🔄 Proxying fetch:', url);
+// Also intercept fetch (library fast path: fetch(tileUrl)->blob->createImageBitmap).
+// Handles string URLs and Request objects.
+const originalFetch = window.fetch.bind(window);
+window.fetch = function (input, ...args) {
+    if (typeof input === 'string') {
+        input = rewriteMapyUrl(input);
+    } else if (input instanceof Request) {
+        const rewritten = rewriteMapyUrl(input.url);
+        if (rewritten !== input.url) {
+            input = new Request(rewritten, input);
         }
     }
-    
-    return originalFetch.call(this, url, ...args);
+    return originalFetch(input, ...args);
 };
 
 // Intercept Image loading (panorama tiles might use this)
