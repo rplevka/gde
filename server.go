@@ -84,12 +84,21 @@ var (
 	cacheStats   CacheStats
 	cacheMutex   sync.RWMutex
 	
-	// Patterns for cacheable tile requests
+	// Patterns for cacheable tile requests. Pano JSON/octet-stream endpoints
+	// below are per-pid immutable-ish (clickmask/detail) or slowly growing
+	// (getneighbours); getbest (lon/lat search) is intentionally NOT cached.
 	tilePatterns = []*regexp.Regexp{
 		regexp.MustCompile(`^v1/maptiles/`),              // Map tiles
 		regexp.MustCompile(`^v1/panorama/tiles/`),        // Panorama tiles (actual format!)
 		regexp.MustCompile(`^v1/panorama/\d+/thumbnail`), // Panorama thumbnails
+		regexp.MustCompile(`^v1/panorama/clickmask/`),   // Click-to-move mask per pid+year
+		regexp.MustCompile(`^v1/panorama/detail`),       // Pano detail per pid
+		regexp.MustCompile(`^v1/panorama/getneighbours`), // Neighbour list per pid+year
 	}
+
+	// Short TTL for neighbour lists: they can grow when new captures are
+	// added nearby. Clickmask/detail/tiles use the global TTL.
+	neighbourCacheTTLDays = 7
 )
 
 func logDebug(format string, v ...interface{}) {
@@ -117,6 +126,18 @@ func logError(format string, v ...interface{}) {
 }
 
 // ==================== TILE CACHING ====================
+
+// cacheTTLFor returns TTL days for a cacheable path: short TTL for
+// neighbour lists, global TTL for everything else (tiles/clickmask/detail).
+func cacheTTLFor(path string) int {
+	if strings.HasPrefix(path, "v1/panorama/getneighbours") {
+		if cacheConfig.TTLDays < neighbourCacheTTLDays {
+			return cacheConfig.TTLDays
+		}
+		return neighbourCacheTTLDays
+	}
+	return cacheConfig.TTLDays
+}
 
 // isCacheable checks if a request path should be cached
 func isCacheable(path string) bool {
@@ -169,7 +190,7 @@ func getCacheMetaPath(cacheKey string) string {
 }
 
 // readFromCache tries to read a cached response
-func readFromCache(cacheKey string) ([]byte, map[string]string, bool) {
+func readFromCache(cacheKey string, apiPath string) ([]byte, map[string]string, bool) {
 	cachePath := getCachePath(cacheKey)
 	metaPath := getCacheMetaPath(cacheKey)
 	
@@ -182,9 +203,10 @@ func readFromCache(cacheKey string) ([]byte, map[string]string, bool) {
 	
 	logDebug("📂 Cache file found: %s (size: %d)", cachePath, info.Size())
 	
-	// Check TTL
+	// Check TTL (per-path: neighbours short, rest global). Short-TTL entries
+	// are enforced on read; the periodic sweep uses the global max TTL.
 	age := time.Since(info.ModTime())
-	if age > time.Duration(cacheConfig.TTLDays)*24*time.Hour {
+	if age > time.Duration(cacheTTLFor(apiPath))*24*time.Hour {
 		// Cache expired, delete it
 		os.Remove(cachePath)
 		os.Remove(metaPath)
@@ -521,28 +543,33 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	query := r.URL.Query()
 	
-	// Check if this request is cacheable (tile requests)
-	shouldCache := isCacheable(apiPath)
+	// Check if this request is cacheable (GET only; force=1 bypasses cache).
+	// getbest (lon/lat search) never matches isCacheable patterns by design.
+	shouldCache := r.Method == http.MethodGet && isCacheable(apiPath)
+	if shouldCache && query.Get("force") == "1" {
+		logDebug("⏭️ Cache bypass (force=1): %s", apiPath)
+		shouldCache = false
+	}
 	var cacheKey string
-	
+
 	if shouldCache {
 		cacheKey = getCacheKey(apiPath, query)
-		
+
 		// Try to serve from cache
-		if data, headers, found := readFromCache(cacheKey); found {
+		if data, headers, found := readFromCache(cacheKey, apiPath); found {
 			// Cache hit! Serve from cache
 			atomic.AddUint64(&cacheStats.hits, 1)
 			atomic.AddUint64(&cacheStats.savedBytes, uint64(len(data)))
-			
+
 			// Set headers from cache
 			for k, v := range headers {
 				w.Header().Set(k, v)
 			}
-			
+
 			// Add CORS and cache headers
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("X-Cache", "HIT")
-			w.Header().Set("Cache-Control", "public, max-age="+strconv.Itoa(cacheConfig.TTLDays*24*60*60))
+			w.Header().Set("Cache-Control", "public, max-age="+strconv.Itoa(cacheTTLFor(apiPath)*24*60*60))
 			
 			w.WriteHeader(http.StatusOK)
 			w.Write(data)
@@ -679,7 +706,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		// Add cache headers
 		if shouldCache {
 			w.Header().Set("X-Cache", "MISS")
-			w.Header().Set("Cache-Control", "public, max-age="+strconv.Itoa(cacheConfig.TTLDays*24*60*60))
+			w.Header().Set("Cache-Control", "public, max-age="+strconv.Itoa(cacheTTLFor(apiPath)*24*60*60))
 		}
 		
 		// Write status code
