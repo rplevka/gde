@@ -34,29 +34,11 @@ window.fetch = function (input, ...args) {
     return originalFetch(input, ...args);
 };
 
-// Intercept Image loading (panorama tiles might use this)
-const OriginalImage = window.Image;
-window.Image = function() {
-    const img = new OriginalImage();
-    const originalSrcDescriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
-    
-    Object.defineProperty(img, 'src', {
-        get: function() {
-            return originalSrcDescriptor.get.call(this);
-        },
-        set: function(url) {
-            if (typeof url === 'string') {
-                // Replace Mapy.cz API domains
-                url = url.replace('https://api.mapy.cz/', '/api/mapy/');
-                url = url.replace('http://api.mapy.cz/', '/api/mapy/');
-                url = url.replace('https://mapserver.mapy.cz/', '/api/mapy/');
-                url = url.replace('http://mapserver.mapy.cz/', '/api/mapy/');
-            }
-            return originalSrcDescriptor.set.call(this, url);
-        }
-    });
-    
-    return img;
-};
+// NOTE: No Image interceptor. Library fast path is
+// fetch(tileUrl)->blob()->createImageBitmap(), covered by the fetch
+// wrapper above; the fallback uses `new Image` only where fetch/
+// createImageBitmap is unavailable. A global window.Image override
+// would break `new Image(w,h)` args and instanceof while adding a
+// per-instance src descriptor lookup on the tile path.
 
-console.log('✅ Panorama API proxy initialized (XHR, Fetch, Image)');
+console.log('✅ Panorama API proxy initialized (XHR, Fetch)');
