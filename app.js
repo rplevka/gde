@@ -2690,31 +2690,41 @@ async function loadPanorama(lat, lon, options = {}) {
                 fov: initialCamera.fov
             };
             
-            // Add listener to enforce restrictions
+            // Add listener to enforce restrictions (rAF-throttled + epsilon).
             // Restrictions are lifted once the round is submitted so the user
             // can freely explore where they spawned before advancing.
+            // Without throttling this runs per camera event (drag = 60Hz)
+            // and setCamera() re-triggers pano-view -> ping-pong jank.
+            let panoViewQueued = false;
+            const CAM_EPS = 1e-4;
             panoData.addListener('pano-view', () => {
                 if (gameState.roundSubmitted) return;
-                const currentCamera = panoData.getCamera();
-                const newCamera = { ...currentCamera };
-                
-                // Lock rotation if preference is off
-                if (!gameState.preferences.turnAround) {
-                    newCamera.yaw = restrictedCamera.yaw;
-                    newCamera.pitch = restrictedCamera.pitch;
-                }
-                
-                // Lock zoom if preference is off
-                if (!gameState.preferences.zoom) {
-                    newCamera.fov = restrictedCamera.fov;
-                }
-                
-                // Apply restrictions if camera changed
-                if (newCamera.yaw !== currentCamera.yaw || 
-                    newCamera.pitch !== currentCamera.pitch || 
-                    newCamera.fov !== currentCamera.fov) {
-                    panoData.setCamera(newCamera);
-                }
+                if (panoViewQueued) return;
+                panoViewQueued = true;
+                requestAnimationFrame(() => {
+                    panoViewQueued = false;
+                    if (gameState.roundSubmitted) return;
+                    const currentCamera = panoData.getCamera();
+                    const newCamera = { ...currentCamera };
+
+                    // Lock rotation if preference is off
+                    if (!gameState.preferences.turnAround) {
+                        newCamera.yaw = restrictedCamera.yaw;
+                        newCamera.pitch = restrictedCamera.pitch;
+                    }
+
+                    // Lock zoom if preference is off
+                    if (!gameState.preferences.zoom) {
+                        newCamera.fov = restrictedCamera.fov;
+                    }
+
+                    // Apply restrictions only on real drift (epsilon).
+                    if (Math.abs(newCamera.yaw - currentCamera.yaw) > CAM_EPS ||
+                        Math.abs(newCamera.pitch - currentCamera.pitch) > CAM_EPS ||
+                        Math.abs(newCamera.fov - currentCamera.fov) > CAM_EPS) {
+                        panoData.setCamera(newCamera);
+                    }
+                });
             });
         }
 
