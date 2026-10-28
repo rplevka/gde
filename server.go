@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -317,14 +318,10 @@ func cleanupCache() {
 	var countDeleted int
 	
 	if totalSize > maxSize {
-		// Sort by mod time (oldest first) - simple bubble sort is fine for this
-		for i := 0; i < len(files)-1; i++ {
-			for j := 0; j < len(files)-i-1; j++ {
-				if files[j].modTime.After(files[j+1].modTime) {
-					files[j], files[j+1] = files[j+1], files[j]
-				}
-			}
-		}
+		// Sort by mod time (oldest first)
+		sort.Slice(files, func(i, j int) bool {
+			return files[i].modTime.Before(files[j].modTime)
+		})
 		
 		// Delete until under limit
 		for _, f := range files {
