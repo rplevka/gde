@@ -2781,6 +2781,13 @@ async function unlockPanoramaAfterSubmit() {
         gameState.panoramaInstance.destroy();
         gameState.panoramaInstance = null;
 
+        // Minimal cleanup (Option B): library destroy() tears down
+        // listeners/renderers but may leave DOM nodes in the parent.
+        // Clear explicitly so the reload does not stack canvases and
+        // leak WebGL contexts over many rounds.
+        const panoContainer = document.getElementById('panoramaContainer');
+        if (panoContainer) panoContainer.innerHTML = '';
+
         const ok = await loadPanorama(pos.lat, pos.lon, {
             forceNavigation: true,
             preserveCamera: camera
