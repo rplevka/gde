@@ -1722,6 +1722,58 @@ function setupEventListeners() {
             document.addEventListener(evt, (e) => e.preventDefault(), { passive: false });
         }
     }
+
+    // Double-tap to zoom in on the panorama (touch devices only, one step
+    // per double-tap; zoom out stays on pinch). The Mapy library has no
+    // double-tap/double-click zoom; Leaflet maps already zoom on
+    // double-tap, so this makes panorama behavior consistent.
+    if (panoContainer && !panoContainer.dataset.dblTapFix) {
+        panoContainer.dataset.dblTapFix = 'true';
+        const isTouchDevice = () =>
+            (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+            navigator.maxTouchPoints > 0 ||
+            'ontouchstart' in window;
+        let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+        let tapStartX = 0, tapStartY = 0, multiTouch = false;
+        panoContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) { multiTouch = true; return; }
+            multiTouch = false;
+            const t = e.touches[0];
+            tapStartX = t.clientX;
+            tapStartY = t.clientY;
+        }, { passive: true });
+        panoContainer.addEventListener('touchend', (e) => {
+            if (!isTouchDevice()) return;
+            if (multiTouch) { multiTouch = false; lastTapTime = 0; return; }
+            if (e.touches.length !== 0) return;
+            const t = e.changedTouches[0];
+            if (!t) return;
+            // Ignore taps on panorama UI (nav arrows, logo, timeline).
+            if (e.target && e.target.closest && e.target.closest('button, a')) return;
+            if (Math.hypot(t.clientX - tapStartX, t.clientY - tapStartY) > 24) return;
+            const now = Date.now();
+            if (now - lastTapTime < 350 &&
+                Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY) < 40) {
+                lastTapTime = 0;
+                // Respect the zoom preference (post-submit free explore still zooms).
+                if (!gameState.preferences.zoom && !gameState.roundSubmitted) return;
+                const inst = gameState.panoramaInstance;
+                if (!inst) return;
+                try {
+                    const cam = inst.getCamera();
+                    if (!cam || typeof cam.fov !== 'number') return;
+                    // One step in (wheel notch is 0.9x; double-tap is a
+                    // coarser 0.8x so it feels like a map +1 level).
+                    // setCamera clamps to the library fovRange internally.
+                    inst.setCamera({ ...cam, fov: cam.fov * 0.8 });
+                } catch (err) { /* panorama mid-reload, ignore */ }
+            } else {
+                lastTapTime = now;
+                lastTapX = t.clientX;
+                lastTapY = t.clientY;
+            }
+        }, { passive: true });
+    }
     
     // Mobile tab bar
     setupMobileTabBar();
