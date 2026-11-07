@@ -1775,55 +1775,6 @@ function setupEventListeners() {
         }, { passive: true });
     }
     
-    // Double-tap to zoom on the guess map (touch devices). Leaflet
-    // synthesizes dblclick from two clicks within 200ms, which misses
-    // real-world double-taps; this wider-window detector (350ms) covers
-    // the rest. Fast pairs (<=200ms) are left to Leaflet to avoid +2.
-    const mapContainer = document.getElementById('mapContainer');
-    if (mapContainer && !mapContainer.dataset.dblTapFix) {
-        mapContainer.dataset.dblTapFix = 'true';
-        const isTouchDeviceMap = () =>
-            (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
-            navigator.maxTouchPoints > 0 ||
-            'ontouchstart' in window;
-        let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
-        let tapStartX = 0, tapStartY = 0, multiTouch = false;
-        mapContainer.addEventListener('touchstart', (e) => {
-            if (e.touches.length > 1) { multiTouch = true; return; }
-            multiTouch = false;
-            const t = e.touches[0];
-            tapStartX = t.clientX;
-            tapStartY = t.clientY;
-        }, { passive: true });
-        mapContainer.addEventListener('touchend', (e) => {
-            if (!isTouchDeviceMap()) return;
-            if (multiTouch) { multiTouch = false; lastTapTime = 0; return; }
-            if (e.touches.length !== 0) return;
-            const t = e.changedTouches[0];
-            if (!t) return;
-            if (e.target && e.target.closest && e.target.closest('button, a, .leaflet-control')) return;
-            if (Math.hypot(t.clientX - tapStartX, t.clientY - tapStartY) > 24) return;
-            const now = Date.now();
-            const dt = now - lastTapTime;
-            const dist = Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY);
-            if (lastTapTime !== 0 && dt < 350 && dist < 40) {
-                lastTapTime = 0;
-                if (dt <= 200) return; // native Leaflet dblclick covers fast pairs
-                const map = gameState.map;
-                if (!map) return;
-                try {
-                    const rect = mapContainer.getBoundingClientRect();
-                    const latlng = map.containerPointToLatLng([t.clientX - rect.left, t.clientY - rect.top]);
-                    map.setView(latlng, Math.min(map.getZoom() + 1, map.getMaxZoom()));
-                } catch (err) { try { map.zoomIn(); } catch (e2) {} }
-            } else {
-                lastTapTime = now;
-                lastTapX = t.clientX;
-                lastTapY = t.clientY;
-            }
-        }, { passive: true });
-    }
-    
     // Mobile tab bar
     setupMobileTabBar();
     
@@ -2072,6 +2023,12 @@ function initializeMap() {
     // Create map centered on the selected region
     gameState.map = L.map('mapContainer').setView([centerLat, centerLon], 7);
 
+    // Double-click zoom is owned by handleGuessMapDoubleTap (wider 350ms
+    // window, works for touch taps where Leaflet's 200ms sim misses).
+    if (gameState.map.doubleClickZoom) {
+        gameState.map.doubleClickZoom.disable();
+    }
+
     // Add tile layer
     updateMapLayer();
     
@@ -2119,10 +2076,104 @@ function initializeMap() {
     });
     new LogoControl().addTo(gameState.map);
 
-    // Add click handler for guesses
+    // Add click handler for guesses (+ double-tap to zoom on touch devices)
     gameState.map.on('click', (e) => {
+        // Snapshot the pre-tap guess so a double-tap can zoom without
+        // moving the marker (both taps place one before we know it's a pair).
+        const preTap = gameState.roundSubmitted ? null : {
+            latlng: gameState.guessLocation ? { ...gameState.guessLocation } : null
+        };
         placeGuess(e.latlng.lat, e.latlng.lng);
+        handleGuessMapDoubleTap(e, preTap);
     });
+}
+
+// Double-tap state for the guess map (module-level; absolute timestamps
+// make stale state across games harmless).
+let lastGuessMapTap = { time: 0, x: 0, y: 0, preTap: null };
+
+// End of the last completed double-tap pair (for the bounce guard below).
+let lastPairEnd = { time: 0, x: 0, y: 0 };
+
+// Put the guess marker back to its pre-double-tap state (a double-tap is
+// a zoom gesture, not a guess).
+function restoreGuessMarker(snap) {
+    const map = gameState.map;
+    if (!map || gameState.roundSubmitted) return;
+    if (gameState.guessMarker) {
+        map.removeLayer(gameState.guessMarker);
+        gameState.guessMarker = null;
+    }
+    gameState.guessLocation = snap.latlng ? { ...snap.latlng } : null;
+    const submitBtn = document.getElementById('submitGuess');
+    if (gameState.guessLocation) {
+        gameState.guessMarker = L.marker([gameState.guessLocation.lat, gameState.guessLocation.lon], {
+            zIndexOffset: 200,
+            icon: L.divIcon({
+                className: 'guess-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            })
+        }).addTo(map);
+        submitBtn.disabled = false;
+        submitBtn.textContent = t('btn.submit');
+    } else {
+        submitBtn.disabled = true;
+        submitBtn.textContent = t('btn.submit.placeholder');
+    }
+}
+
+// Double-click / double-tap to zoom the guess map (mouse + touch).
+// Leaflet's built-in DoubleClickZoom (disabled in initializeMap) only
+// reacts within 200ms and keys off click detail, missing real-world
+// double-taps, so this wider-window (350ms) detector owns it instead:
+// exactly one level per double-tap, Shift+double-click zooms out,
+// matching Leaflet's native behavior.
+function handleGuessMapDoubleTap(e, preTap) {
+    if (!e || !e.latlng) return;
+    const now = Date.now();
+    const p = e.containerPoint;
+    // Bounce guard (100ms / 40px): duplicate delivery of the previous tap
+    // (mouse-switch bounce, emulation artifacts) is not a gesture. Undo
+    // its marker placement and ignore it; the pending pair candidate and
+    // the last completed pair are left untouched.
+    if (preTap && p) {
+        // Post-pair duplicate only: a tap within 80ms of a completed pair
+        // at the same spot is switch bounce / emulation echo, not intent.
+        // (Deliberate double-taps bottom out near 60ms, so the pre-pair
+        // path has no guard — a threshold there ate real fast pairs.)
+        if (lastPairEnd.time !== 0 && (now - lastPairEnd.time) < 80 &&
+            Math.hypot(p.x - lastPairEnd.x, p.y - lastPairEnd.y) < 40) {
+            restoreGuessMarker(preTap);
+            return;
+        }
+    }
+    const dt = now - lastGuessMapTap.time;
+    const dist = (p && lastGuessMapTap.time)
+        ? Math.hypot(p.x - lastGuessMapTap.x, p.y - lastGuessMapTap.y)
+        : Infinity;
+    const isPair = lastGuessMapTap.time !== 0 && dt < 350 && dist < 40;
+    if (isPair) {
+        const undoTo = lastGuessMapTap.preTap;
+        lastGuessMapTap = { time: 0, x: 0, y: 0, preTap: null };
+        if (undoTo) restoreGuessMarker(undoTo);
+        const map = gameState.map;
+        if (!map) return;
+        // Arm the bounce guard only after a zoom actually happened.
+        try {
+            const out = !!(e.originalEvent && e.originalEvent.shiftKey);
+            const z = out ? map.getZoom() - 1 : map.getZoom() + 1;
+            map.setView(e.latlng, Math.max(map.getMinZoom(), Math.min(z, map.getMaxZoom())));
+            lastPairEnd = { time: now, x: p.x, y: p.y };
+        } catch (err) {
+            try {
+                map.zoomIn();
+                lastPairEnd = { time: now, x: p.x, y: p.y };
+            } catch (e2) {}
+        }
+    } else {
+        lastGuessMapTap = { time: now, x: p ? p.x : 0, y: p ? p.y : 0, preTap };
+    }
 }
 
 function updateMapLayer() {
