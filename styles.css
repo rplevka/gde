@@ -305,6 +305,10 @@ header h1:hover {
     height: 100%;
     background: #f0f0f0;
     overflow: hidden;
+    /* Let the panorama library handle all touch gestures (pinch-zoom).
+       Without this iOS Safari takes over two-finger pinch as page zoom. */
+    touch-action: none;
+    overscroll-behavior: none;
 }
 
 #panoramaContainer {
@@ -313,6 +317,16 @@ header h1:hover {
     position: absolute;
     top: 0;
     left: 0;
+    /* Critical for iOS: Leaflet sets touch-action:none on its container
+       (which is why pinch works on the map tab). The Mapy panorama
+       library does not, so Safari hijacks pinch as page zoom. */
+    touch-action: none;
+    overscroll-behavior: none;
+}
+
+#panoramaContainer .panorama,
+#panoramaContainer canvas {
+    touch-action: none;
 }
 
 

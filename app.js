@@ -1698,6 +1698,30 @@ function setupEventListeners() {
 
     // Toggle map size button
     document.getElementById('toggleMapSize').addEventListener('click', toggleMapSize);
+
+    // Prevent iOS Safari page pinch-zoom on the panorama.
+    // The Mapy panorama library listens to touchstart/touchmove passively
+    // and never calls preventDefault, and its CSS sets no touch-action,
+    // so Safari hijacks two-finger pinch as page zoom. Leaflet does not
+    // have this problem because its CSS sets touch-action:none.
+    // touch-action:none in styles.css is the primary fix; these
+    // non-passive listeners are the safety net for Safari's
+    // gesturestart/gesturechange page-zoom path.
+    const panoContainer = document.getElementById('panoramaContainer');
+    if (panoContainer && !panoContainer.dataset.pinchFix) {
+        panoContainer.dataset.pinchFix = 'true';
+        panoContainer.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    }
+    if (!document.documentElement.dataset.pinchFix) {
+        document.documentElement.dataset.pinchFix = 'true';
+        for (const evt of ['gesturestart', 'gesturechange', 'gestureend']) {
+            document.addEventListener(evt, (e) => e.preventDefault(), { passive: false });
+        }
+    }
     
     // Mobile tab bar
     setupMobileTabBar();
