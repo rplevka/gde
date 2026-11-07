@@ -1775,6 +1775,55 @@ function setupEventListeners() {
         }, { passive: true });
     }
     
+    // Double-tap to zoom on the guess map (touch devices). Leaflet
+    // synthesizes dblclick from two clicks within 200ms, which misses
+    // real-world double-taps; this wider-window detector (350ms) covers
+    // the rest. Fast pairs (<=200ms) are left to Leaflet to avoid +2.
+    const mapContainer = document.getElementById('mapContainer');
+    if (mapContainer && !mapContainer.dataset.dblTapFix) {
+        mapContainer.dataset.dblTapFix = 'true';
+        const isTouchDeviceMap = () =>
+            (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+            navigator.maxTouchPoints > 0 ||
+            'ontouchstart' in window;
+        let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+        let tapStartX = 0, tapStartY = 0, multiTouch = false;
+        mapContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) { multiTouch = true; return; }
+            multiTouch = false;
+            const t = e.touches[0];
+            tapStartX = t.clientX;
+            tapStartY = t.clientY;
+        }, { passive: true });
+        mapContainer.addEventListener('touchend', (e) => {
+            if (!isTouchDeviceMap()) return;
+            if (multiTouch) { multiTouch = false; lastTapTime = 0; return; }
+            if (e.touches.length !== 0) return;
+            const t = e.changedTouches[0];
+            if (!t) return;
+            if (e.target && e.target.closest && e.target.closest('button, a, .leaflet-control')) return;
+            if (Math.hypot(t.clientX - tapStartX, t.clientY - tapStartY) > 24) return;
+            const now = Date.now();
+            const dt = now - lastTapTime;
+            const dist = Math.hypot(t.clientX - lastTapX, t.clientY - lastTapY);
+            if (lastTapTime !== 0 && dt < 350 && dist < 40) {
+                lastTapTime = 0;
+                if (dt <= 200) return; // native Leaflet dblclick covers fast pairs
+                const map = gameState.map;
+                if (!map) return;
+                try {
+                    const rect = mapContainer.getBoundingClientRect();
+                    const latlng = map.containerPointToLatLng([t.clientX - rect.left, t.clientY - rect.top]);
+                    map.setView(latlng, Math.min(map.getZoom() + 1, map.getMaxZoom()));
+                } catch (err) { try { map.zoomIn(); } catch (e2) {} }
+            } else {
+                lastTapTime = now;
+                lastTapX = t.clientX;
+                lastTapY = t.clientY;
+            }
+        }, { passive: true });
+    }
+    
     // Mobile tab bar
     setupMobileTabBar();
     
