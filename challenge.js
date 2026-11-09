@@ -175,20 +175,6 @@ const ChallengeMode = (() => {
         drawBoundariesOnMap(map, showFill) {
             if (!state.queue.length) return;
 
-            for (const key of state.queue) {
-                const region = REGIONS[key];
-                if (!region || !region.paths) continue;
-
-                region.paths.forEach(path => {
-                    L.polyline(path, {
-                        color: '#888',
-                        weight: 1,
-                        opacity: 0.4,
-                        interactive: false
-                    }).addTo(map);
-                });
-            }
-
             if (showFill) {
                 this.drawCompletedFills(map);
             }

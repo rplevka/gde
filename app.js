@@ -1453,8 +1453,7 @@ function drawChallengeBoundaries() {
     const existingLayers = new Set();
     gameState.map.eachLayer(layer => existingLayers.add(layer));
 
-    // Draw all district/region border outlines
-    const queue = ChallengeMode.getProgress();
+    // Only already-answered regions are drawn; upcoming targets must stay hidden
     ChallengeMode.drawBoundariesOnMap(gameState.map, ChallengeMode.getSettings().showFill);
 
     gameState.map.eachLayer(layer => {
