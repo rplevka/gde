@@ -117,6 +117,12 @@
       "name": "Moravian-Silesian Region",
       "file": "region-moravskoslezsky.json",
       "name_cz": "Moravskoslezsk\u00fd kraj"
+    },
+    {
+      "key": "praha",
+      "name": "Prague",
+      "file": "city-praha.json",
+      "name_cz": "Praha"
     }
   ],
   "districts": [
@@ -499,6 +505,12 @@
       "key": "znojmo",
       "name": "Znojmo",
       "file": "district-znojmo.json"
+    },
+    {
+      "key": "praha",
+      "name": "Prague",
+      "file": "city-praha.json",
+      "name_cz": "Praha"
     }
   ]
 }
