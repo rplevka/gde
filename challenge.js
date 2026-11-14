@@ -132,13 +132,8 @@ const ChallengeMode = (() => {
             const region = REGIONS[key];
 
             let correct = false;
-            if (region && region.paths) {
-                for (const path of region.paths) {
-                    if (isPointInPolygon(guessLocation.lat, guessLocation.lon, path)) {
-                        correct = true;
-                        break;
-                    }
-                }
+            if (region && region.paths && typeof isPointInRegion === 'function') {
+                correct = isPointInRegion(guessLocation.lat, guessLocation.lon, region);
             }
 
             const result = { key, score, correct, guessLocation: { lat: guessLocation.lat, lon: guessLocation.lon } };
@@ -188,8 +183,8 @@ const ChallengeMode = (() => {
                 const color = result.correct ? '#4caf50' : '#f44336';
                 const fillOpacity = result.correct ? 0.25 : 0.15;
 
-                region.paths.forEach(path => {
-                    L.polygon(path, {
+                getRegionPolygons(region).forEach(rings => {
+                    L.polygon(rings, {
                         color: color,
                         fillColor: color,
                         fillOpacity: fillOpacity,
@@ -205,8 +200,8 @@ const ChallengeMode = (() => {
             const region = REGIONS[targetKey];
             if (!region || !region.paths) return;
 
-            region.paths.forEach(path => {
-                L.polygon(path, {
+            getRegionPolygons(region).forEach(rings => {
+                L.polygon(rings, {
                     color: '#667eea',
                     fillColor: '#667eea',
                     fillOpacity: 0.1,

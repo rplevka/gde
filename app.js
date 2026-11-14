@@ -92,24 +92,27 @@ async function loadBoundaryFile(regionKey) {
         }
         const boundaryData = await response.json();
         
-        // Handle both Polygon and MultiPolygon types
-        let allCoords = [];
+        // Keep every ring, grouped by polygon: [[outerRing, ...holeRings], ...].
+        // Interior rings (holes) mark enclosed areas such as Brno-město inside
+        // Brno-venkov. Exterior rings also stay in region.paths for callers that
+        // only need to draw outlines.
+        const toLatLonRing = ring => ring.map(coord => [coord[1], coord[0]]);
+        let polygons;
         if (boundaryData.type === 'MultiPolygon') {
             // MultiPolygon: coordinates is array of polygons, each polygon is array of rings
-            region.paths = boundaryData.coordinates.map(polygon => {
-                const geoCoords = polygon[0]; // First ring of each polygon
-                const coords = geoCoords.map(coord => [coord[1], coord[0]]);
-                allCoords = allCoords.concat(coords);
-                return coords;
-            });
-            console.log(`✅ Loaded MultiPolygon with ${region.paths.length} polygons for ${regionKey}`);
+            polygons = boundaryData.coordinates.map(polygon => polygon.map(toLatLonRing));
+            console.log(`✅ Loaded MultiPolygon with ${polygons.length} polygons for ${regionKey}`);
         } else {
-            // Regular Polygon: coordinates[0] is the exterior ring
-            const geoCoords = boundaryData.coordinates[0];
-            const coords = geoCoords.map(coord => [coord[1], coord[0]]);
-            allCoords = coords;
-            region.paths = [coords];
-            console.log(`✅ Loaded ${coords.length} points for ${regionKey}`);
+            // Regular Polygon: coordinates is an array of rings (outer first, then holes)
+            polygons = [boundaryData.coordinates.map(toLatLonRing)];
+            console.log(`✅ Loaded ${polygons[0][0].length} points for ${regionKey}`);
+        }
+        region.polygons = polygons;
+        region.paths = polygons.map(rings => rings[0]);
+
+        const allCoords = [];
+        for (const rings of polygons) {
+            for (const ring of rings) allCoords.push(...ring);
         }
         
         // ALWAYS calculate bounds from all polygon points (overrides any hardcoded values)
@@ -593,16 +596,14 @@ function showPanoramaErrorModal() {
         }).addTo(debugMap);
         
         // Add region polygon if available
-        if (gameState.lastSearchRegion.paths) {
-            gameState.lastSearchRegion.paths.forEach(path => {
-                L.polygon(path, {
-                    color: '#667eea',
-                    fillColor: '#667eea',
-                    fillOpacity: 0.1,
-                    weight: 2
-                }).addTo(debugMap);
-            });
-        }
+        getRegionPolygons(gameState.lastSearchRegion).forEach(rings => {
+            L.polygon(rings, {
+                color: '#667eea',
+                fillColor: '#667eea',
+                fillOpacity: 0.1,
+                weight: 2
+            }).addTo(debugMap);
+        });
         
         // Add all attempt points
         gameState.lastSearchAttempts.forEach(attempt => {
@@ -1477,8 +1478,8 @@ function drawChallengeLastFill() {
     const color = lastResult.correct ? '#4caf50' : '#f44336';
     const fillOpacity = lastResult.correct ? 0.25 : 0.15;
 
-    region.paths.forEach(path => {
-        const layer = L.polygon(path, {
+    getRegionPolygons(region).forEach(rings => {
+        const layer = L.polygon(rings, {
             color: color,
             fillColor: color,
             fillOpacity: fillOpacity,
@@ -2043,8 +2044,8 @@ function initializeMap() {
     // Add region overlay if preference is enabled (not in challenge mode — would reveal target)
     if (!gameState.challengeActive && gameState.preferences.showRegion && region.paths) {
         console.log(`Adding region overlay with ${region.paths.length} path(s), ${region.paths[0].length} points`);
-        region.paths.forEach(path => {
-            L.polygon(path, {
+        getRegionPolygons(region).forEach(rings => {
+            L.polygon(rings, {
                 color: '#667eea',
                 fillColor: '#667eea',
                 fillOpacity: 0.15,
@@ -2761,23 +2762,15 @@ async function findRandomLocationWithPanorama() {
         const lat = region.bounds.minLat + Math.random() * (region.bounds.maxLat - region.bounds.minLat);
         const lon = region.bounds.minLon + Math.random() * (region.bounds.maxLon - region.bounds.minLon);
         
-        // If region has polygon paths, check if point is inside the polygon
-        let insidePolygon = true;
+        // If region has a polygon, check if point is inside it and outside its holes
+        const insidePolygon = true;
         if (region.paths) {
-            let insideAnyPolygon = false;
-            for (const path of region.paths) {
-                if (isPointInPolygon(lat, lon, path)) {
-                    insideAnyPolygon = true;
-                    break;
-                }
-            }
-            if (!insideAnyPolygon) {
+            if (!isPointInRegion(lat, lon, region)) {
                 debugAttempts.push({ lat, lon, inside: false, hasPanorama: false });
                 outsideCount++;
                 attempts++;
-                continue; // Skip this point, it's outside all drawn areas
+                continue; // Skip this point, it's outside the district or in an enclosed one
             }
-            insidePolygon = true;
             insideCount++;
         }
 
@@ -2791,6 +2784,21 @@ async function findRandomLocationWithPanorama() {
             });
 
             if (result.exists) {
+                // The panorama can snap up to the search radius away from the
+                // sampled point, so re-check its real position. Without this a
+                // Brno-venkov round can start inside Brno-město.
+                if (region.paths && !isPointInRegion(result.info.lat, result.info.lon, region)) {
+                    debugAttempts.push({
+                        lat: result.info.lat,
+                        lon: result.info.lon,
+                        inside: false,
+                        hasPanorama: true,
+                        rejectedEnclave: true
+                    });
+                    outsideCount++;
+                    attempts++;
+                    continue;
+                }
                 return {
                     lat: result.info.lat,
                     lon: result.info.lon,
@@ -3531,15 +3539,14 @@ function showChallengeComplete() {
             const region = REGIONS[result.key];
             if (!region || !region.paths) return;
             const color = result.correct ? '#4CAF50' : '#f44336';
-            region.paths.forEach(path => {
-                const latLngs = path.map(p => [p[0], p[1]]);
-                L.polygon(latLngs, {
+            getRegionPolygons(region).forEach(rings => {
+                L.polygon(rings, {
                     color: color,
                     weight: 2,
                     fillColor: color,
                     fillOpacity: 0.4
                 }).addTo(summaryMap);
-                allBounds.push(...latLngs);
+                rings.forEach(ring => allBounds.push(...ring));
             });
         });
 
@@ -4242,6 +4249,37 @@ function openDrawRegionModal(currentSelectedRegion, checkStartButtonCallback) {
         const savedRegions = getSavedCustomRegions();
         document.getElementById('regionSlotCount').textContent = t('draw.slots', { used: savedRegions.length, total: MAX_SAVED_REGIONS });
     }, 100);
+}
+
+// Return a region's polygons with holes preserved: [[outerRing, ...holeRings], ...].
+// Falls back to region.paths for callers holding older data.
+function getRegionPolygons(region) {
+    if (region && Array.isArray(region.polygons)) return region.polygons;
+    if (region && Array.isArray(region.paths)) return region.paths.map(path => [path]);
+    return [];
+}
+
+// True when the point is inside an exterior ring and outside all of that
+// polygon's holes. Holes are enclosed districts (e.g. Brno-město inside
+// Brno-venkov) and must not count as part of the surrounding district.
+function isPointInRegion(lat, lon, region) {
+    const polygons = getRegionPolygons(region);
+    if (polygons.length === 0) return false;
+
+    for (const rings of polygons) {
+        if (!isPointInPolygon(lat, lon, rings[0])) continue;
+
+        let inHole = false;
+        for (let i = 1; i < rings.length; i++) {
+            if (isPointInPolygon(lat, lon, rings[i])) {
+                inHole = true;
+                break;
+            }
+        }
+        if (!inHole) return true;
+    }
+
+    return false;
 }
 
 // Point in Polygon algorithm (Ray Casting)
