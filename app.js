@@ -3529,9 +3529,8 @@ function showChallengeComplete() {
             dragging: true,
             scrollWheelZoom: false
         });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors © CARTO'
+        L.tileLayer(`/api/mapy/v1/maptiles/basic/256/{z}/{x}/{y}`, {
+            attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s.</a>',
         }).addTo(summaryMap);
 
         const allBounds = [];
